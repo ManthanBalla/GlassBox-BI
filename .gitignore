@@ -86,6 +86,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+!data/sample/
+!data/sample/*
 models/checkpoints/*
 !models/checkpoints/.gitkeep
 models/saved/*

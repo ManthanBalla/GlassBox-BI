@@ -6,10 +6,10 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 1 — Application Skeleton**
+**Phase 2 — Dataset Ingestion & Generic Data Foundation**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.2.0-alpha`
+- **Version**: `0.3.0-alpha`
 
 ---
 
@@ -23,34 +23,48 @@ This document serves as the single source of truth for current project progress,
 - [x] **Automated Testing Setup**: Base test suite with directory structure sanity tests.
 
 ### Phase 1 — Application Skeleton
-- [x] **FastAPI Backend Application**:
-  - Operational server running with asynchronous lifespan events and structured logging.
-  - Global exception handling preventing raw internal error/stack trace leaks.
-  - Modular API routing structure: `/api/v1` router aggregator.
-  - Health check endpoints: `GET /health` (root) and `GET /api/v1/health`.
-  - CORS middleware enabled for local frontend development (`http://localhost:3000`, `http://127.0.0.1:3000`).
-- [x] **Pydantic v2 Contract Layer**:
-  - `HealthResponse`: System health, version, uptime timestamp.
-  - `DatasetMetadata`: Contract for future dataset cataloging (Phase 2).
-  - `ForecastRequest` & `ForecastResult`: Contracts for forecasting agent pipelines (Phase 4).
-  - `ExplanationResult`: Contract for SHAP attributions and time-series signal decomposition (Phase 6).
-  - `RecommendationResult`: Contract for scenario analysis and prescriptive insights (Phase 7).
-  - Contract discovery endpoint: `GET /api/v1/contracts/specs`.
-- [x] **Next.js TypeScript Frontend**:
-  - Modern dashboard shell created in `frontend/` (Next.js 16, TypeScript, Tailwind CSS, App Router).
-  - Glassmorphic dark UI with custom gradient tokens.
-  - Navigation sidebar with future-phase badges (Dashboard, Dataset, Forecasting, Explainability, Decisions, Agent Activity).
-  - Interactive Contracts Explorer displaying all Phase 1 Pydantic contracts.
-  - Architecture blueprint cards for planned analytical engines.
-- [x] **Frontend → Backend Communication Highway**:
-  - Live connection verification pinging `GET /health`.
-  - Three distinct operational states: `Checking Connection...`, `Backend Status: Connected` (with roundtrip latency in ms), and `Backend Status: Unavailable`.
-  - Graceful failure handling without internal exception exposure.
-  - Configurable backend target URL via `NEXT_PUBLIC_API_URL`.
-- [x] **Automated & Manual Verification**:
-  - 12 unit tests passing in `tests/unit/` (pytest and unittest).
-  - Frontend production build compiles cleanly (`npm run build`, Turbopack).
-  - Browser verification of live connected and disconnected states.
+- [x] **FastAPI Backend Application**: Operational server with lifespan events, structured logging, CORS middleware, global error handling.
+- [x] **Pydantic v2 Contract Layer**: Core schemas (`HealthResponse`, `DatasetMetadata`, `ForecastRequest`, `ForecastResult`, `ExplanationResult`, `RecommendationResult`).
+- [x] **Next.js TypeScript Frontend**: Dashboard shell with glassmorphism styling, sidebar navigation, live backend health status monitor, and contracts explorer.
+- [x] **Frontend-Backend Communication**: Live health checking with latency measurement and graceful failure handling.
+
+### Phase 2 — Dataset Ingestion & Generic Data Foundation
+- [x] **Deterministic Synthetic Retail Dataset**:
+  - Reusable generator: `scripts/generate_synthetic_retail_data.py` (`seed=42`).
+  - Generated exactly **50,000 data rows** to `data/raw/synthetic/retail_50k.csv` (3.42 MB).
+  - Multi-component demand generation: base demand + trend + weekly seasonality + yearly seasonality + promo lift + holiday spikes + price elasticity + store effects + noise.
+  - Zero Data Leakage Rule: Inventory and features do not use future target values.
+  - Generated committed sample dataset: `data/sample/retail_sample.csv` (150 rows, identical schema).
+- [x] **Git Safety Policy**:
+  - `data/raw/` and `data/processed/` are strictly ignored by `.gitignore`.
+  - `data/sample/` is explicitly tracked for automated testing and documentation.
+- [x] **Universal Canonical Business Data Contract**:
+  - `BusinessTimeSeriesRecord` in `backend/app/schemas/data_contract.py`.
+  - Required fields: `date`, `entity_id`, `target`.
+  - Optional business features: `product_id`, `category`, `region`, `store_type`, `price`, `promotion`, `holiday`, `inventory`, `additional_features`.
+- [x] **Dataset-Specific Column Mapping Layer**:
+  - `ColumnMapping` adapter decoupling core architecture from specific vendors.
+  - Pre-configured benchmark templates: `SYNTHETIC_RETAIL_MAPPING`, `WALMART_MAPPING_TEMPLATE`, `ROSSMANN_MAPPING_TEMPLATE`, `DEFAULT_CANONICAL_MAPPING`.
+  - `auto_detect_column_mapping` heuristic synonym auto-detection.
+- [x] **Data Validation Engine (`backend/app/data_processing/validation.py`)**:
+  - Schema integrity, null rates, duplicate rows/keys, date validation, non-negative target checks, price/inventory ranges, and time-series continuity.
+- [x] **Temporal Lookahead Leakage Detection (`backend/app/data_processing/leakage.py`)**:
+  - Flags future-token feature names (`future_`, `lead_`, `next_`, `target_t+`), timestamps exceeding observation dates, and duplicate target columns.
+  - Emits prescriptive recommendation: chronological walk-forward splitting over random cross-validation.
+- [x] **Explainable Data Quality Scoring (`backend/app/data_processing/quality.py`)**:
+  - Deterministic 0–100 quality score across Schema, Missing Values, Duplicates, Temporal Integrity, Numeric Validity, Consistency.
+  - Complete transparent audit log explaining every deducted point.
+- [x] **Statistical Profiling Service (`backend/app/data_processing/profiling.py`)**:
+  - Calculates descriptive statistics, percentiles, IQR outlier counts, unique cardinalities, and time frequency inference.
+- [x] **Source-Agnostic Ingestion Service (`backend/app/data_processing/ingestion.py`)**:
+  - Robust CSV ingestion from paths, raw bytes, or IO buffers with graceful error handling.
+- [x] **API v1 Dataset Endpoints (`backend/app/api/v1/endpoints/ingestion.py`)**:
+  - `POST /api/v1/datasets/ingest/file` (multipart CSV upload)
+  - `POST /api/v1/datasets/ingest/local` (server-side local file ingestion)
+  - `GET /api/v1/datasets/sample-summary` (instant summary of committed sample dataset)
+  - `GET /api/v1/datasets/mapping-templates` (benchmark templates discovery)
+- [x] **Automated Testing**:
+  - 39 unit tests passing across all test modules (`test_synthetic_generator.py`, `test_validation.py`, `test_ingestion.py`, `test_api_v1.py`, `test_schemas.py`, `test_foundation.py`).
 
 ---
 
@@ -58,8 +72,7 @@ This document serves as the single source of truth for current project progress,
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 2** | Dataset Ingestion | **Next Recommended Phase** |
-| **Phase 3** | Data Processing Agent | Pending |
+| **Phase 3** | Data Processing Agent | **Next Recommended Phase** |
 | **Phase 4** | Forecasting Agent | Pending |
 | **Phase 5** | Forecast Evaluation | Pending |
 | **Phase 6** | Explainability Agent | Pending |
@@ -77,96 +90,65 @@ This document serves as the single source of truth for current project progress,
 | ADR ID | Title | Status | Rationale |
 |---|---|---|---|
 | **ADR-001** | Modular Separation of Engines | Accepted | Separate data processing, forecasting, explainability, and decision intelligence into isolated Python packages to ensure independent testability and maintainability. |
-| **ADR-002** | Zero Premature Logic in Phase 0 & 1 | Accepted | Strictly avoided implementing machine learning models, SHAP routines, or agent loops in Phases 0 and 1 to guarantee an uncluttered foundation. |
-| **ADR-003** | FastAPI for Backend Service | Accepted | FastAPI provides high-performance asynchronous execution, native Pydantic validation, and auto-generated OpenAPI documentation. |
-| **ADR-004** | Isolated Data & Model Directories | Accepted | Datasets (`data/`) and model weights (`models/`) are kept outside the source code tree and ignored by Git to prevent repository bloat. |
-| **ADR-005** | Next.js App Router & Tailwind for Frontend | Accepted | Next.js with TypeScript and Tailwind CSS provides a reactive, type-safe development environment with rapid build times and native environment variable handling. |
-| **ADR-006** | Pydantic v2 Schema Contracts for Module Decoupling | Accepted | Domain schemas (`DatasetMetadata`, `ForecastRequest`, etc.) serve as explicit data contracts, enabling frontend and backend development to progress with guaranteed interface stability. |
+| **ADR-002** | Zero Premature Logic | Accepted | Strictly avoid implementing machine learning models, SHAP routines, or agent loops ahead of their designated phases. |
+| **ADR-003** | FastAPI for Backend Service | Accepted | High-performance asynchronous execution, native Pydantic validation, and auto-generated OpenAPI documentation. |
+| **ADR-004** | Isolated Data & Model Directories | Accepted | Large datasets (`data/raw/`) and model weights are kept outside Git tracking to prevent repository bloat. |
+| **ADR-005** | Next.js App Router & Tailwind for Frontend | Accepted | Reactive, type-safe development environment with rapid build times and native environment variable handling. |
+| **ADR-006** | Pydantic v2 Schema Contracts for Module Decoupling | Accepted | Domain schemas serve as explicit data contracts, enabling frontend and backend development to progress with guaranteed interface stability. |
+| **ADR-007** | Organization-Agnostic Canonical Data Contract | Accepted | GlassBox-BI is strictly decoupled from specific vendors (such as Walmart or Rossmann). All external tabular datasets map their columns into `BusinessTimeSeriesRecord` via adapters. |
+| **ADR-008** | Explainable Arithmetic Data Quality Scoring | Accepted | Data quality scores are computed via deterministic, explainable arithmetic with transparent deduction logs rather than opaque machine learning models. |
 
 ---
 
 ## 5. Known Limitations
 
-- **No Active ML / Agent Logic**: By design, predictive models, SHAP interpretability, and agent reasoning loops are not implemented in Phase 1 and will be introduced starting from Phase 3/4.
-- **Local Storage Only**: Datasets and model checkpoints currently point to local directories (`data/`, `models/`).
+- **No Feature Engineering or Model Training**: By design, cleaning transformations, feature engineering pipelines, forecasting models, and autonomous agents are not implemented in Phase 2 (scheduled for Phases 3–9).
+- **The Synthetic Dataset is for Testing**: The 50,000-row synthetic retail dataset is a development/testing dataset. Real benchmark datasets (Walmart, Rossmann) will be integrated later without modifying the canonical data contract.
 
 ---
 
 ## 6. How to Run the Project
 
-### Prerequisites
-- Python 3.10+
-- Node.js v18+ & npm
-
-### Running the Backend
+### Generate Synthetic Retail Dataset
 ```bash
-# 1. Install backend dependencies
-pip install -r backend/requirements.txt
+# Generates data/raw/synthetic/retail_50k.csv (50,000 rows) and data/sample/retail_sample.csv (150 rows)
+python scripts/generate_synthetic_retail_data.py --rows 50000 --seed 42
+```
 
-# 2. Configure environment (optional, defaults provided)
-cp .env.example .env
-
-# 3. Start the FastAPI development server
+### Running Backend Server
+```bash
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-The backend will be live at `http://127.0.0.1:8000`.
+Endpoints:
 - Health Check: `http://127.0.0.1:8000/health`
-- Swagger Documentation: `http://127.0.0.1:8000/docs`
-- Contract Discovery: `http://127.0.0.1:8000/api/v1/contracts/specs`
+- Dataset Sample Summary: `http://127.0.0.1:8000/api/v1/datasets/sample-summary`
+- Mapping Templates: `http://127.0.0.1:8000/api/v1/datasets/mapping-templates`
+- Interactive Swagger UI: `http://127.0.0.1:8000/docs`
 
-### Running the Frontend
+### Running Frontend
 ```bash
-# 1. Navigate to the frontend directory
 cd frontend
-
-# 2. Install dependencies (if not already installed)
-npm install
-
-# 3. Start Next.js development server
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Dashboard available at `http://localhost:3000`.
 
 ### Running Automated Tests
 ```bash
-# Run backend test suite
 pytest tests/
 # or
 python -m unittest discover -s tests -p "test_*.py"
-
-# Run frontend build check
-cd frontend && npm run build
 ```
 
 ---
 
-## 7. Environment Variables Reference
+## 7. Testing Status
 
-| Variable | Default Value | Description |
-|---|---|---|
-| `APP_NAME` | `GlassBox-BI` | Name of the application service. |
-| `APP_ENV` | `development` | Environment mode (`development`, `staging`, `production`). |
-| `DEBUG` | `true` | Enables verbose debug logs and hot reload. |
-| `LOG_LEVEL` | `INFO` | Application log verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). |
-| `SECRET_KEY` | *(placeholder)* | Cryptographic key for session/token verification. |
-| `BACKEND_HOST` | `127.0.0.1` | Local listening host address for FastAPI. |
-| `BACKEND_PORT` | `8000` | Port for the backend API server. |
-| `ALLOWED_ORIGINS`| `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated CORS allowed origins. |
-| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Target FastAPI backend URL for the Next.js frontend. |
-| `DATABASE_URL` | `sqlite:///./glassbox.db` | Connection string for metadata database. |
-| `GEMINI_API_KEY` | *(optional/placeholder)* | API key for Gemini models (Phase 3-9 agents). |
-| `OPENAI_API_KEY` | *(optional/placeholder)* | API key for OpenAI models (optional fallback). |
-| `LLM_MODEL` | `gemini-2.0-flash` | Default foundation model for agentic workflows. |
-| `DATA_DIR` | `./data` | Filepath root for dataset storage. |
-| `MODEL_DIR` | `./models` | Filepath root for serialized models. |
-
----
-
-## 8. Testing Status
-
-- **Backend Test Framework**: `pytest` / `unittest`
-  - `tests/unit/test_foundation.py`: Directory structure and package importability (3 tests) — **Passing**
-  - `tests/unit/test_api_v1.py`: Root health, v1 health, contract specs, CORS headers (4 tests) — **Passing**
-  - `tests/unit/test_schemas.py`: Validation of all 5 Pydantic contract schemas (5 tests) — **Passing**
-- **Frontend Build**: `npm run build` (Turbopack) — **Passing** (Static pages generated, 0 TypeScript errors)
-- **End-to-End Communication**: Live browser verification of connected and graceful failure states — **Passing**
+- **Test Framework**: `pytest` / `unittest`
+  - `tests/unit/test_synthetic_generator.py`: 7 tests passing (reproducibility, 50k rows, non-negative target, column schema)
+  - `tests/unit/test_validation.py`: 9 tests passing (schema validation, missing values, duplicates, date checks, leakage detection)
+  - `tests/unit/test_ingestion.py`: 11 tests passing (canonical contract, column mapping, quality scorer, profiler, ingestion service, API endpoints)
+  - `tests/unit/test_api_v1.py`: 4 tests passing (system health, API v1 health, contract specs discovery, CORS)
+  - `tests/unit/test_schemas.py`: 5 tests passing (Pydantic contract validation)
+  - `tests/unit/test_foundation.py`: 3 tests passing (directory structure and package importability)
+  - **Total**: **39/39 passing** (100% pass rate in 0.90s)
+- **Frontend Build**: `npm run build` — **Passing** (0 TypeScript errors)

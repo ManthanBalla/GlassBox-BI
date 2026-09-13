@@ -8,6 +8,24 @@ from backend.app.schemas.contracts import (
     ExplanationResult,
     RecommendationResult,
 )
+from backend.app.schemas.data_contract import (
+    BusinessTimeSeriesRecord,
+    ColumnMapping,
+    DEFAULT_CANONICAL_MAPPING,
+    SYNTHETIC_RETAIL_MAPPING,
+    WALMART_MAPPING_TEMPLATE,
+    ROSSMANN_MAPPING_TEMPLATE,
+    auto_detect_column_mapping,
+)
+from backend.app.schemas.ingestion import (
+    ValidationSeverity,
+    ValidationIssue,
+    QualityScoreBreakdown,
+    TemporalLeakageReport,
+    NumericSummary,
+    DatasetProfile,
+    IngestionResult,
+)
 
 __all__ = [
     "HealthResponse",
@@ -16,4 +34,18 @@ __all__ = [
     "ForecastResult",
     "ExplanationResult",
     "RecommendationResult",
+    "BusinessTimeSeriesRecord",
+    "ColumnMapping",
+    "DEFAULT_CANONICAL_MAPPING",
+    "SYNTHETIC_RETAIL_MAPPING",
+    "WALMART_MAPPING_TEMPLATE",
+    "ROSSMANN_MAPPING_TEMPLATE",
+    "auto_detect_column_mapping",
+    "ValidationSeverity",
+    "ValidationIssue",
+    "QualityScoreBreakdown",
+    "TemporalLeakageReport",
+    "NumericSummary",
+    "DatasetProfile",
+    "IngestionResult",
 ]

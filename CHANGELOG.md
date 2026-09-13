@@ -7,34 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0-alpha] - Phase 2: Dataset Ingestion & Generic Data Foundation (2026-09-13)
+
+### Added
+- **Deterministic Synthetic Retail Dataset Generator**:
+  - Implemented `scripts/generate_synthetic_retail_data.py` (`seed=42`) producing exactly 50,000 data rows to `data/raw/synthetic/retail_50k.csv` (3.42 MB).
+  - Multi-component additive/multiplicative demand formula: base demand, trend, weekly/yearly seasonality, promo boost, holiday spikes, price elasticity, store effects, and realistic noise.
+  - Zero Data Leakage: Inventory and features do not use future target values.
+  - Generated lightweight, 150-row representative sample dataset `data/sample/retail_sample.csv` tracked in Git.
+- **Git Safety Configuration**:
+  - Updated `.gitignore` to strictly exclude `data/raw/` and `data/processed/`, while explicitly preserving `data/sample/`.
+- **Universal Canonical Business Data Contract**:
+  - Defined `BusinessTimeSeriesRecord` in `backend/app/schemas/data_contract.py` with required fields (`date`, `entity_id`, `target`) and optional business features (`product_id`, `category`, `region`, `store_type`, `price`, `promotion`, `holiday`, `inventory`, `additional_features`).
+- **Dataset-Specific Column Mapping Layer**:
+  - Implemented `ColumnMapping` adapter model decoupling GlassBox-BI from specific vendors.
+  - Pre-configured benchmark templates: `SYNTHETIC_RETAIL_MAPPING`, `WALMART_MAPPING_TEMPLATE`, `ROSSMANN_MAPPING_TEMPLATE`, `DEFAULT_CANONICAL_MAPPING`.
+  - Implemented `auto_detect_column_mapping` heuristic synonym matcher for zero-configuration ingestion.
+- **Multi-Dimensional Validation Engine**:
+  - Implemented `DataValidator` in `backend/app/data_processing/validation.py` covering schema integrity, null rates, exact & key duplicate rows, date parsing/sorting, non-negative target validation, price/inventory ranges, and time-series length.
+- **Temporal Lookahead Leakage Detection**:
+  - Implemented `TemporalLeakageDetector` in `backend/app/data_processing/leakage.py` flagging future lookahead keywords, post-observation timestamps, and duplicate targets, prescribing chronological walk-forward splitting.
+- **Deterministic & Explainable Data Quality Scoring**:
+  - Implemented `DataQualityScorer` in `backend/app/data_processing/quality.py` calculating a 0–100 quality score across Schema, Missing Values, Duplicates, Temporal Integrity, Numeric Validity, and Consistency with transparent deduction logs.
+- **Statistical Data Profiling Service**:
+  - Implemented `DataProfiler` in `backend/app/data_processing/profiling.py` computing descriptive statistics, percentiles, IQR outlier counts, cardinalities, and time frequency inference.
+- **Source-Agnostic Ingestion Service**:
+  - Implemented `DatasetIngestionService` in `backend/app/data_processing/ingestion.py` orchestrating CSV parsing, mapping resolution, validation, leakage checks, profiling, and quality scoring with graceful error handling.
+- **API v1 Dataset Endpoints**:
+  - Mounted `/api/v1/datasets/` in `backend/app/api/v1/api.py` with endpoints for file upload (`/ingest/file`), local file ingestion (`/ingest/local`), committed sample summary (`/sample-summary`), and mapping templates discovery (`/mapping-templates`).
+- **Automated Test Coverage**:
+  - Added `tests/unit/test_synthetic_generator.py` (7 tests).
+  - Added `tests/unit/test_validation.py` (9 tests).
+  - Added `tests/unit/test_ingestion.py` (11 tests).
+  - Total test suite expanded to 39 unit tests passing cleanly with 100% success rate.
+
+---
+
 ## [0.2.0-alpha] - Phase 1: Application Skeleton (2026-09-13)
 
 ### Added
 - **Backend Application Foundation (FastAPI)**:
-  - Configured asynchronous application lifespan management, central structured logging, and global exception handlers.
+  - Configured asynchronous lifespan management, central structured logging, and global exception handlers.
   - Implemented modular `/api/v1` router aggregator in `backend/app/api/v1/api.py`.
-  - Added primary health check endpoints: `GET /health` (root) and `GET /api/v1/health` returning `HealthResponse`.
-  - Added schema contract discovery endpoint: `GET /api/v1/contracts/specs`.
-  - Enabled CORS middleware supporting local frontend development origins (`localhost:3000`, `127.0.0.1:3000`).
-  - Added `backend/app/services/` layer boundary.
+  - Added primary health check endpoints: `GET /health` and `GET /api/v1/health`.
+  - Enabled CORS middleware supporting local frontend development origins.
 - **Pydantic v2 Contract Layer (`backend/app/schemas/`)**:
-  - `HealthResponse`: Diagnostic schema with version, timestamp, and phase status.
-  - `DatasetMetadata`: Future dataset ingestion and cataloging specification.
-  - `ForecastRequest`: Multi-step time-series forecasting parameter contract.
-  - `ForecastResult`: Standardized prediction output schema with confidence bounds and metrics.
-  - `ExplanationResult`: Glass-box XAI schema for SHAP attributions and signal decomposition.
-  - `RecommendationResult`: Prescriptive decision intelligence contract for scenario analysis.
+  - Initialized contracts for `HealthResponse`, `DatasetMetadata`, `ForecastRequest`, `ForecastResult`, `ExplanationResult`, `RecommendationResult`.
 - **Frontend Dashboard Shell (Next.js + TypeScript + Tailwind CSS)**:
-  - Initialized Next.js 16 (App Router) in `frontend/` with TypeScript, Tailwind CSS, and custom glassmorphism tokens.
-  - Created responsive `Sidebar` with future-phase navigation badges.
-  - Created `Header` component with GlassBox-BI title, subtitle, and runtime mode indicators.
-  - Created `BackendStatus` component featuring live connectivity testing to `GET /health`, real-time latency measurement, and graceful failure handling.
-  - Created `ArchitectureCard` and `ContractsViewer` components for interactive exploration of upcoming modules and Pydantic schemas.
+  - Initialized Next.js 16 (App Router) in `frontend/` with custom glassmorphism design tokens.
+  - Created `Sidebar`, `Header`, `BackendStatus`, `ArchitectureCard`, and `ContractsViewer` components.
 - **Automated & Integration Testing**:
-  - `tests/unit/test_api_v1.py`: Tests for `/health`, `/api/v1/health`, contract specs discovery, and CORS headers.
-  - `tests/unit/test_schemas.py`: Validation of all 5 domain contract schemas and constraint checking.
-  - Updated `tests/unit/test_foundation.py` to verify `schemas` and `services` directories.
-  - Frontend production build verification (`npm run build`).
+  - Tests for `/health`, `/api/v1/health`, contract specs, and schema validation.
 
 ---
 
@@ -42,28 +65,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Repository Governance**:
-  - Initialized `.gitignore` for Python, Frontend, Node, virtual environments, IDEs, and environment files.
-  - Initialized `.env.example` defining configuration schema for the application, server, database, and LLM providers.
-  - Created `README.md` with platform vision, architecture summary, setup instructions, and phase roadmap.
-  - Created `PROJECT_STATE.md` tracking active phase, completed milestones, architectural decisions, run guides, and testing status.
-  - Created `CHANGELOG.md` for phase-by-phase version history.
+  - Initialized `.gitignore`, `.env.example`, `README.md`, `PROJECT_STATE.md`, `CHANGELOG.md`.
 - **Modular Directory Skeleton**:
-  - Established `backend/app/` package structure with clean architectural boundaries.
-  - Created `backend/requirements.txt` with baseline dependencies.
-  - Created `backend/app/main.py` providing a lightweight baseline health-check server.
-  - Created `frontend/` directory placeholder.
-  - Created `data/` and `models/` directory trees.
+  - Established `backend/app/`, `frontend/`, `data/`, `models/`, `docs/`, `tests/`.
 - **Architectural Documentation**:
-  - `docs/architecture.md`: Detailed system architecture, Mermaid dataflow diagram, module boundaries, and design principles.
-  - `docs/development_phases.md`: 13-phase implementation roadmap spanning Phase 0 through Phase 12 with acceptance criteria.
-- **Automated Sanity Testing**:
-  - Initialized `tests/` hierarchy with `tests/unit/test_foundation.py` to verify package importability and folder structure completeness.
+  - Created `docs/architecture.md` and 13-phase roadmap in `docs/development_phases.md`.
 
 ---
 
 ## [Upcoming Releases]
 
-- **Phase 2 (v0.3.0-alpha)**: Dataset Ingestion
 - **Phase 3 (v0.4.0-alpha)**: Data Processing Agent
 - **Phase 4 (v0.5.0-alpha)**: Forecasting Agent
 - **Phase 5 (v0.6.0-alpha)**: Forecast Evaluation

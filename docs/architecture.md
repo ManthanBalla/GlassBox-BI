@@ -62,10 +62,29 @@ flowchart TD
 
 ## 3. Core Module Boundaries & Responsibilities
 
-### 3.1 Data Processing Module (`backend/app/data_processing`)
-- **Ingestion**: Supports CSV, tabular formats, and API data streams.
-- **Cleansing & Validation**: Automatic schema verification, missing value imputation, outlier handling, and timestamp alignment.
-- **Feature Engineering**: Lag features, rolling statistics, calendar seasonality indicators, and external regressors.
+### 3.1 Data Ingestion & Generic Data Foundation (`backend/app/data_processing` & `backend/app/schemas`)
+- **Organization-Agnostic Design**: GlassBox-BI is strictly decoupled from specific vendors (such as Walmart or Rossmann). It operates on a universal canonical schema:
+  $$\text{Any Business Dataset} \longrightarrow \text{Column Mapping Adapter} \longrightarrow \text{Canonical Contract} \longrightarrow \text{Validation / Quality / Profiling}$$
+- **Canonical Business Data Contract (`BusinessTimeSeriesRecord`)**:
+  - Required fields: `date`, `entity_id`, `target` (for supervised time-series forecasting).
+  - Optional standard fields: `product_id`, `category`, `region`, `store_type`, `price`, `promotion`, `holiday`, `inventory`.
+  - Dynamic `additional_features` preserving unmapped exogenous regressors.
+- **Dataset-Specific Column Mapping Layer (`ColumnMapping`)**:
+  - Pre-configured benchmark templates: `SYNTHETIC_RETAIL_MAPPING`, `WALMART_MAPPING_TEMPLATE` (`Date` $\rightarrow$ `date`, `Store` $\rightarrow$ `entity_id`, `Weekly_Sales` $\rightarrow$ `target`), `ROSSMANN_MAPPING_TEMPLATE` (`Date` $\rightarrow$ `date`, `Sales` $\rightarrow$ `target`, `Promo` $\rightarrow$ `promotion`).
+  - Heuristic synonym auto-detection (`auto_detect_column_mapping`) for zero-configuration ingestion.
+- **Multi-Dimensional Validation Engine (`DataValidator`)**:
+  - Schema, null rates, duplicate rows/keys, date parseability, non-negative target verification, and series continuity.
+- **Temporal Lookahead Leakage Detection (`TemporalLeakageDetector`)**:
+  - Scans for future lookahead tokens (`future_`, `lead_`, `next_`), post-observation timestamps, and duplicate target columns.
+  - Recommends strict chronological walk-forward splitting over random cross-validation.
+- **Deterministic & Explainable Quality Scoring (`DataQualityScorer`)**:
+  - Weighted composite score (0–100) across Schema, Missing Values, Duplicates, Temporal Integrity, Numeric Validity, and Consistency with audit deduction logs.
+- **Statistical Data Profiling (`DataProfiler`)**:
+  - Extracts descriptive statistics, percentiles (Q25, Q75, median), IQR outlier counts, unique cardinalities, and time frequency inference.
+- **Synthetic Retail Benchmark Dataset**:
+  - Deterministic 50,000-row synthetic retail dataset generated via `scripts/generate_synthetic_retail_data.py` (`seed=42`).
+  - Raw 50,000-row file is strictly ignored by Git (`data/raw/`), while a 150-row representative sample (`data/sample/retail_sample.csv`) is versioned.
+  - *The synthetic dataset is a development/testing dataset. Real benchmark datasets such as Walmart and Rossmann will be integrated later without changing the core canonical data contract.*
 
 ### 3.2 Forecasting Module (`backend/app/forecasting`)
 - **Predictive Modeling**: Combines statistical baselines (e.g., ARIMA/ETS) and modern machine learning models (e.g., LightGBM/XGBoost, Prophet).
