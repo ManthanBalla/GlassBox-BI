@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.5.0-alpha] - Phase 4: Forecasting Agent (2026-09-13)
+
+### Added
+- **Model-Agnostic Common Interface (`BaseForecastModel`)**:
+  - Abstract base contract in `backend/app/forecasting/base.py` defining standard lifecycle: `fit`, `predict`, `evaluate_validation`, `compute_residual_prediction_interval`, `get_model_metadata`, `save_model`, `load_model`.
+  - Enforces uniform behavior across statistical, machine learning, and deep learning architectures without engine-specific branching.
+- **Prophet Forecasting Adapter (`ProphetForecaster`)**:
+  - Implemented in `backend/app/forecasting/prophet_model.py` fitting non-linear trends with yearly, weekly, and daily seasonalities.
+  - Native Bayesian uncertainty intervals via Stan backend; retail demand non-negative clamping; JSON serialization.
+- **LightGBM Forecasting Adapter (`LightGBMForecaster`)**:
+  - Implemented in `backend/app/forecasting/lightgbm_model.py` incorporating calendar, lags (`lag_1`, `lag_7`, `lag_14`, `lag_28`), and rolling statistics.
+  - **Zero-Leakage Multi-Step Recursive Forecasting**: Dynamically computes future lag and rolling features from previous model predictions without peeking into ground truth future targets.
+  - Empirical validation-residual prediction intervals; binary checkpoint serialization via `joblib`.
+- **PyTorch LSTM Forecasting Adapter (`LSTMForecaster`)**:
+  - Implemented in `backend/app/forecasting/lstm_model.py` using `torch.nn` (`LSTM` -> `Dropout` -> `Linear`).
+  - **Strict Train-Only Scaler Isolation**: Standard normalizer mean and std parameters are fitted solely on historical training observations.
+  - Deterministic random seed initialization; validation-based early stopping with configurable patience; PyTorch checkpoint serialization (`.pt`).
+- **Generic Forecasting Agent (`GenericForecastingAgent`)**:
+  - Universal coordinator in `backend/app/forecasting/agent.py`:
+    - Filters time series by entity and product identifier.
+    - Minimum history validation (rejects series with < 15 observations with `INSUFFICIENT_HISTORY` status).
+    - Splits historical series chronologically into Train (fitting) and Validation (ranking).
+    - Competes candidate models in parallel with **Model Failure Isolation** (one candidate crash does not halt the pipeline).
+    - Ranks candidates dynamically by chosen validation metric (**MAE**, **RMSE**, **MAPE**).
+    - Refits winning model on combined (Train + Validation) partition prior to future projection.
+    - Projects multi-step future horizon points with transparent uncertainty bounds.
+    - Persists trained winner artifact to `models/saved/<model_name>/`.
+- **API v1 Forecasting Endpoints (`backend/app/api/v1/endpoints/forecasting.py`)**:
+  - `POST /api/v1/forecast/run`: Full multi-model competition, validation ranking, and future point forecast with prediction bounds.
+  - `POST /api/v1/forecast/train`: Endpoint for candidate model training and checkpoint serialization.
+  - `GET /api/v1/forecast/models`: Discovers supported models, feature requirements, and minimum history rules.
+  - `GET /api/v1/forecast/config`: Exposes default system hyperparameters and selection criteria.
+  - `GET /api/v1/forecast/health`: Checks operational status of Prophet, LightGBM, PyTorch (with version and CUDA availability), and local storage.
+  - `GET /api/v1/forecast/sample`: Fast one-click demonstration forecast on benchmark dataset.
+- **Minimal Development Verification UI (`ForecastingPanel.tsx`)**:
+  - Integrated into Next.js dashboard shell with entity/product selectors, horizon dropdown, candidate model toggles, validation metric picker, and execution trigger.
+  - Renders candidate validation ranking table, interactive SVG time-series forecast chart with prediction interval polygons, and detailed forecast point table.
+- **Comprehensive Automated Test Suites**:
+  - `tests/unit/test_forecast_models.py`: 4 tests covering BaseForecastModel contract, Prophet, LightGBM, and PyTorch LSTM lifecycles, prediction intervals, metadata, and persistence.
+  - `tests/unit/test_forecasting_agent.py`: 5 tests covering multi-model competition, dynamic ranking (MAE/RMSE/MAPE), insufficient history handling, failure isolation, and deterministic reproducibility.
+  - `tests/unit/test_forecasting_leakage.py`: 3 tests verifying train-only scaler isolation, holdout test partition protection, and recursive forecasting safety.
+  - `tests/unit/test_forecasting_api.py`: 6 tests verifying all REST endpoints, health checks, model catalogs, sample execution, and Pydantic request validation.
+  - Expanded total automated test suite from 61 to **79 passing tests** (100% pass rate in 10.74s).
+
+---
+
+## [0.4.0-alpha] - Phase 3: Data Processing Agent (2026-09-13)
+
+### Added
+- **Generic Business Data Processor (`GenericBusinessDataProcessor`)**:
+  - Implemented universal preprocessing coordinator in `backend/app/data_processing/processing/processor.py` operating directly on canonical `BusinessTimeSeriesRecord` records.
+  - End-to-end 11-step pipeline: cleaning -> duplicate resolution -> invalid value rectification -> missing value imputation -> chronological sorting -> gap integrity -> outlier profiling -> leakage-safe feature engineering -> quality score re-evaluation -> temporal splitting -> machine-readable audit report.
+- **Data Processing Submodules (`backend/app/data_processing/processing/`)**:
+  - `cleaning.py` (`DataCleaner`): Type normalization, string whitespace trimming, datetime standardization with ISO parsing, and numeric coercion.
+  - `duplicates.py` (`DuplicateHandler`): Dynamic composite business key (`date` + `entity_id` + `product_id`), exact duplicate detection, conflicting record detection, and deterministic resolution policy (`KEEP_FIRST`, `KEEP_LAST`, `FLAG`).
+  - `invalid_values.py` (`InvalidValueHandler`): Rectifies non-positive prices, negative inventory, negative target demand, and clamps promotion/holiday indicators to binary {0, 1}.
+  - `missing_values.py` (`MissingValueHandler`): Imputes missing numeric values via entity-grouped medians or forward-fill; handles categoricals via mode or explicit "Unknown". Strict target safety: missing target values are never fabricated from future observations (dropped by default).
+  - `outliers.py` (`OutlierDetector`): Group-aware IQR and Z-Score outlier detection. **Default behavior is DETECT & FLAG** (`target_outlier = 1`) to safeguard genuine promotional and holiday demand signals from deletion.
+  - `time_series.py` (`TimeSeriesAnalyzer`): Enforces strict chronological sorting, infers observation frequency ('D', 'W'), and computes `TimeSeriesIntegrityReport` (missing periods, largest gap, continuity percentage).
+  - `feature_engineering.py` (`FeatureEngineer`): Generates calendar features (`year`, `month`, `quarter`, `day_of_week`, `is_weekend`, etc.), strictly historical lag features (`lag_1`, `lag_7`, `lag_14`, `lag_28`), and rolling window features (`rolling_mean_7`, `rolling_mean_14`, `rolling_mean_28`, `rolling_std_7`, `rolling_std_28`) using `shift(1).rolling(w)` to eliminate lookahead leakage.
+  - `splitting.py` (`TimeSeriesSplitter`): Pure data utility for chronological walk-forward splitting (70% train, 15% val, 15% test) without random shuffling or premature model training.
+  - `audit.py` (`AuditTrailTracker`): Thread-safe accumulator of `ProcessingAuditEntry` records logging every transformation, row count affected, before/after states, and justifications.
+- **Pydantic Processing Schemas (`backend/app/schemas/processing.py`)**:
+  - Defined `DataProcessingConfig`, `ProcessingAuditEntry`, `TimeSeriesIntegrityReport`, `OutlierSummary`, `TemporalSplitMetadata`, and `DataProcessingResult`.
+- **API v1 Processing Endpoints (`backend/app/api/v1/endpoints/processing.py`)**:
+  - `POST /api/v1/process/file`: Ingest & process uploaded CSV.
+  - `POST /api/v1/process/local`: Process local server-side CSV.
+  - `GET /api/v1/process/config`: Return default `DataProcessingConfig`.
+  - `GET /api/v1/process/sample-summary`: Execute processing pipeline on committed retail sample.
+- **Dataset Processing Script & Outputs**:
+  - Created `scripts/process_retail_dataset.py` processing 50,000 synthetic rows in 0.91s.
+  - Generated full processed dataset: `data/processed/synthetic/retail_processed.csv` (12.54 MB, Git ignored).
+  - Generated committed sample dataset: `data/sample/retail_processed_sample.csv` (18.79 KB, Git tracked).
+- **Automated Unit Tests**:
+  - Added `tests/unit/test_data_processor.py` (11 tests).
+  - Added `tests/unit/test_feature_engineering.py` (4 tests).
+  - Added `tests/unit/test_temporal_splitting.py` (2 tests).
+  - Added `tests/unit/test_processing_api.py` (5 tests).
+  - Expanded total automated test suite from 39 to **61 passing tests** (100% pass rate).
+
+---
+
 ## [0.3.0-alpha] - Phase 2: Dataset Ingestion & Generic Data Foundation (2026-09-13)
 
 ### Added

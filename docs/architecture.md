@@ -86,22 +86,115 @@ flowchart TD
   - Raw 50,000-row file is strictly ignored by Git (`data/raw/`), while a 150-row representative sample (`data/sample/retail_sample.csv`) is versioned.
   - *The synthetic dataset is a development/testing dataset. Real benchmark datasets such as Walmart and Rossmann will be integrated later without changing the core canonical data contract.*
 
-### 3.2 Forecasting Module (`backend/app/forecasting`)
-- **Predictive Modeling**: Combines statistical baselines (e.g., ARIMA/ETS) and modern machine learning models (e.g., LightGBM/XGBoost, Prophet).
-- **Evaluation**: Computes standardized time-series metrics (MAE, RMSE, MAPE, WAPE).
-- **Artifacts**: Serializes and tracks model artifacts and metadata.
+### 3.2 Data Processing Agent (`backend/app/data_processing/processing`)
+- **Architectural Principle**: The Data Processing Agent is deterministic, vectorized, and auditable. It operates on the canonical contract and is completely decoupled from specific retailers.
+- **Processing Architecture & Pipeline**:
+  ```
+                DATA SOURCE
+                    ↓
+          Phase 2 Ingestion
+                    ↓
+        Canonical Data Contract
+                    ↓
+          ┌─────────────────┐
+          │ DATA PROCESSING │
+          │     AGENT       │
+          └────────┬────────┘
+                   ↓
+       ┌───────────────────────┐
+       │ Cleaning              │
+       │ Validation            │
+       │ Missing Values        │
+       │ Duplicate Handling    │
+       │ Outlier Detection     │
+       │ Temporal Integrity    │
+       │ Feature Engineering   │
+       │ Leakage Prevention    │
+       └───────────┬───────────┘
+                   ↓
+          Processing Audit
+                   ↓
+          Forecasting-Ready
+              Dataset
+                   ↓
+              Phase 4
+  ```
+- **Zero Lookahead Leakage Guarantee**:
+  - **Calendar features**: Derived exclusively from the observation date $t$.
+  - **Strictly historical lag features**: $\text{lag}_k(t) = y(t - k)$ for $k \in \{1, 7, 14, 28\}$. At index $t$, only past values are observed.
+  - **Shifted rolling window moments**: $\text{rolling\_mean}_w(t) = \frac{1}{w} \sum_{i=1}^{w} y(t - i)$ via `shift(1).rolling(w)`. Current observation $y(t)$ is mathematically excluded from rolling stats at date $t$.
+- **Outlier Philosophy**:
+  - *GlassBox-BI does not automatically remove every statistical outlier. Business spikes may represent genuine events such as promotions or holidays, therefore the default behavior is detection and flagging (`target_outlier = 1`).*
+- **Missing Value Handling**:
+  - Entity-grouped medians or forward-fill for numeric features. Mode or explicit `"Unknown"` for categoricals.
+  - **Target Safety**: Historical missing targets are never imputed from future data (dropped by default).
+- **Chronological Walk-Forward Splitting**:
+  - Pure data preparation utility (`TimeSeriesSplitter`) partitioning dataset chronologically (e.g. 70% train, 15% validation, 15% test) without random shuffling or premature model training.
+- **Explainable Audit Trail**:
+  - Every transformation records a `ProcessingAuditEntry` documenting the operation, column, rows affected, algorithmic strategy, and before/after summaries.
 
-### 3.3 Explainability Module (`backend/app/explainability`)
+### 3.3 Forecasting Agent & Engine (`backend/app/forecasting`)
+- **Architectural Principle**: Model-agnostic forecasting layer operating on the processed canonical dataset. Decoupled from specific models via `BaseForecastModel`.
+- **Core Research Stance**:
+  > *GlassBox-BI does not assume a single forecasting algorithm is universally optimal. The Forecasting Agent compares candidate models for the selected dataset/series and configuration.*
+  > *Phase 4 uses validation data for internal model selection. The holdout test set is strictly reserved for formal evaluation in Phase 5.*
+- **Forecasting Agent Flow**:
+  ```
+                    PHASE 3
+               PROCESSED DATA
+                      │
+                      ▼
+            ┌────────────────────┐
+            │ FORECASTING AGENT  │
+            └─────────┬──────────┘
+                      │
+            Candidate Models
+                      │
+         ┌────────────┼────────────┐
+         ▼            ▼            ▼
+      Prophet      LightGBM       LSTM
+         │            │            │
+         └────────────┼────────────┘
+                      ▼
+               Validation Metrics
+                      │
+                      ▼
+               Model Ranking
+                      │
+                      ▼
+               Selected Model
+                      │
+                      ▼
+            Future Forecast + 
+            Prediction Interval
+                      │
+                      ▼
+                PHASE 5
+           Formal Evaluation
+                      │
+                      ▼
+                PHASE 6
+            Explainability
+  ```
+- **Candidate Forecasters**:
+  - **Prophet (`ProphetForecaster`)**: Statistical additive model handling non-linear trend and multi-period seasonality; native Bayesian uncertainty bounds.
+  - **LightGBM (`LightGBMForecaster`)**: Fast gradient-boosted tree model using calendar and historical lag/rolling features. **Zero-Leakage Multi-Step Recursive Forecasting**: dynamically feeds previous model predictions into future lag vectors without future target lookahead.
+  - **PyTorch LSTM (`LSTMForecaster`)**: Sequence-to-one recurrent neural network with early stopping. **Strict Scaler Isolation**: standard scaling parameters are fitted solely on historical training data.
+- **Model Failure Isolation**: If an individual candidate encounters an exception or fails history requirements, the agent isolates the failure, logs the error in `ModelEvaluationScore`, and completes competition among healthy candidates.
+- **Prediction Intervals**: Transparent uncertainty bounds (native Prophet Bayesian intervals; empirical validation-residual intervals for LightGBM and LSTM).
+- **Model Checkpoint Persistence**: Checkpoint serialization to `models/saved/<model_name>/` via `save_forecaster` and safe deserialization via `load_forecaster`.
+
+### 3.4 Explainability Module (`backend/app/explainability`)
 - **Glass-Box Principle**: Ensures every forecast is accompanied by interpretability metadata.
 - **Feature Attribution**: Global and local feature attributions using SHAP (SHapley Additive exPlanations) and surrogate models.
 - **Time-Series Decomposition**: Separates signals into trend, seasonality, cyclical effects, and residual noise.
 
-### 3.4 Decision Intelligence Module (`backend/app/decision_intelligence`)
+### 3.5 Decision Intelligence Module (`backend/app/decision_intelligence`)
 - **Scenario Simulation**: "What-if" analysis allowing business users to simulate driver adjustments (e.g., price increase, marketing spend shift).
 - **Prescriptive Insights**: Translates forecast gaps and key drivers into human-readable strategic recommendations.
 - **Risk Quantification**: Confidence bounds and scenario volatility metrics.
 
-### 3.5 Agent Layer & Multi-Agent Orchestration (`backend/app/agents` & `backend/app/orchestration`)
+### 3.6 Agent Layer & Multi-Agent Orchestration (`backend/app/agents` & `backend/app/orchestration`)
 - **Role-Based Agents**:
   - *Data Processing Agent*: Audits dataset quality and recommends transformations.
   - *Forecasting Agent*: Selects optimal models, tunes parameters, and validates performance.
@@ -109,7 +202,7 @@ flowchart TD
   - *Decision Intelligence Agent*: Evaluates simulated scenarios and drafts executive decision memos.
 - **Orchestration**: Manages the multi-agent graph, state transitions, human-in-the-loop approvals, and self-correction loops.
 
-### 3.6 API & Contract Layer (`backend/app/api` & `backend/app/schemas`)
+### 3.7 API & Contract Layer (`backend/app/api` & `backend/app/schemas`)
 - **FastAPI Engine**: Asynchronous ASGI backend handling high-concurrency requests with automatic OpenAPI interactive documentation (`/docs`).
 - **Versioned API Structure**: Endpoints are mounted under `/api/v1/` through a centralized router aggregator (`api_router`).
 - **Pydantic v2 Schema Contracts**: Clean type-safe data transfer objects decoupling the frontend from computational engines:
@@ -120,7 +213,7 @@ flowchart TD
   - `RecommendationResult`: Prescriptive action items and simulation scenarios (Phase 7).
 - **CORS & Resilience**: Configured for local development (`localhost:3000`), with global exception handlers preventing internal stack trace exposure.
 
-### 3.7 Frontend Presentation Layer (`frontend/`)
+### 3.8 Frontend Presentation Layer (`frontend/`)
 - **Next.js App Router & TypeScript**: Reactive web application rendering server and client components.
 - **Glassmorphic UI**: Tailored dark-mode interface with vibrant neon accents and responsive flex layouts.
 - **Frontend-to-Backend Highway**: Asynchronous client-side data fetching targeting `${NEXT_PUBLIC_API_URL}` with live latency measurement.

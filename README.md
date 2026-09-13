@@ -2,7 +2,7 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-2%20%7C%20Dataset%20Ingestion-blue.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-4%20%7C%20Forecasting%20Agent-green.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
@@ -13,15 +13,18 @@
 
 **GlassBox-BI** transforms black-box machine learning predictions into transparent, auditable, and actionable business intelligence.
 
-GlassBox-BI is designed from the ground up as a **universal, organization-agnostic business intelligence framework**. It is strictly decoupled from any single retailer or vendor format. Rather than hard-coding Walmart or retail-specific features into core models, GlassBox-BI establishes a canonical business data contract and flexible column mapping adapters capable of supporting:
+GlassBox-BI is designed from the ground up as a **universal, organization-agnostic business intelligence framework**. It is strictly decoupled from any single retailer or vendor format. Rather than hard-coding Walmart or retail-specific features into core models, GlassBox-BI establishes a canonical business data contract, modular processing, and a model-agnostic forecasting layer capable of supporting:
 - Retail demand and sales forecasting
 - Revenue and financial time-series modeling
 - Inventory planning and stock-level projections
 - SME cash-flow analysis
 - Cross-industry tabular and time-series business data
 
-> [!NOTE]
-> *The synthetic dataset is a development/testing dataset. Real benchmark datasets such as Walmart and Rossmann will be integrated later without changing the core canonical data contract.*
+> [!IMPORTANT]
+> **Core Forecasting Principles**:
+> - *GlassBox-BI does not assume a single forecasting algorithm is universally optimal. The Forecasting Agent compares candidate models for the selected dataset/series and configuration.*
+> - *Phase 4 uses validation data for internal model selection. The holdout test set is strictly reserved for formal evaluation in Phase 5.*
+> - *The synthetic dataset is a development/testing benchmark. Real benchmark datasets such as Walmart and Rossmann will be integrated later without changing the core canonical data contract or model interfaces.*
 
 ---
 
@@ -32,17 +35,29 @@ GlassBox-BI/
 ├── backend/                        # FastAPI Backend Application
 │   ├── app/
 │   │   ├── api/                    # Versioned REST APIs (/api/v1/)
-│   │   │   └── v1/endpoints/       # Health, contracts, and dataset ingestion APIs
+│   │   │   └── v1/endpoints/       # Health, contracts, dataset ingestion, and processing APIs
 │   │   ├── core/                   # Config, settings, logging & CORS
 │   │   ├── schemas/                # Canonical data contracts & Pydantic schemas
 │   │   │   ├── data_contract.py    # BusinessTimeSeriesRecord & ColumnMapping
-│   │   │   └── ingestion.py        # Validation, QualityScore, & IngestionResult
-│   │   ├── data_processing/        # Ingestion, validation, profiling & quality
+│   │   │   ├── ingestion.py        # Validation, QualityScore, & IngestionResult
+│   │   │   └── processing.py       # DataProcessingConfig, Audit, Split, & Result
+│   │   ├── data_processing/        # Ingestion, validation, profiling, and processing agent
 │   │   │   ├── ingestion.py        # Source-agnostic CSV ingestion service
 │   │   │   ├── validation.py       # 7-dimensional data validation engine
 │   │   │   ├── leakage.py          # Temporal lookahead leakage detector
 │   │   │   ├── quality.py          # Explainable 0-100 data quality scorer
-│   │   │   └── profiling.py        # Statistical dataset profiling service
+│   │   │   ├── profiling.py        # Statistical dataset profiling service
+│   │   │   └── processing/         # Data Processing Agent pipeline
+│   │   │       ├── processor.py    # GenericBusinessDataProcessor coordinator
+│   │   │       ├── cleaning.py     # DataCleaner & type normalization
+│   │   │       ├── duplicates.py   # Business-key duplicate handler
+│   │   │       ├── invalid_values.py # Business boundary corrections
+│   │   │       ├── missing_values.py # Temporal-aware imputation (zero target leakage)
+│   │   │       ├── outliers.py     # Group-aware IQR & Z-Score outlier detector (flag by default)
+│   │   │       ├── time_series.py  # Chronological ordering & gap analysis
+│   │   │       ├── feature_engineering.py # Calendar, strictly historical lags & rolling features
+│   │   │       ├── splitting.py    # Walk-forward train/val/test splitting utility
+│   │   │       └── audit.py        # Transparent transformation audit tracker
 │   │   ├── forecasting/            # Forecasting models boundary (Phase 4)
 │   │   ├── explainability/         # XAI & SHAP attribution boundary (Phase 6)
 │   │   ├── decision_intelligence/  # Scenario simulation boundary (Phase 7)
@@ -55,17 +70,20 @@ GlassBox-BI/
 │   ├── raw/                        # Local raw datasets (Git ignored)
 │   │   └── synthetic/              # 50,000-row synthetic retail dataset (local only)
 │   ├── processed/                  # Preprocessed datasets (Git ignored)
+│   │   └── synthetic/              # 50,000-row processed retail dataset (local only)
 │   └── sample/                     # Lightweight sample datasets (Git tracked)
-│       └── retail_sample.csv       # 150-row verified representative sample
+│       ├── retail_sample.csv       # 150-row verified raw sample
+│       └── retail_processed_sample.csv # 150-row verified processed sample
 ├── scripts/                        # Utility & data generation scripts
-│   └── generate_synthetic_retail_data.py # Deterministic 50k dataset generator
-├── tests/                          # Automated test suites (39 unit tests)
+│   ├── generate_synthetic_retail_data.py # Deterministic 50k dataset generator
+│   └── process_retail_dataset.py   # Full pipeline execution on 50k dataset
+├── tests/                          # Automated test suites (61 unit tests)
 │   └── unit/
 ├── docs/                           # Architecture and roadmap documentation
 │   ├── architecture.md             # System architecture blueprint
 │   └── development_phases.md       # 13-Phase development roadmap
 ├── .env.example                    # Global environment variables template
-├── .gitignore                      # Git ignore rules (raw data excluded)
+├── .gitignore                      # Git ignore rules (raw/processed data excluded)
 ├── CHANGELOG.md                    # Project change history
 ├── PROJECT_STATE.md                # Single source of truth for project state
 └── README.md                       # Project documentation entry point
@@ -73,16 +91,44 @@ GlassBox-BI/
 
 ---
 
-## 🔄 Universal Data Ingestion Flow
+## 🔄 Architecture & Agent Workflow
 
 ```mermaid
-flowchart LR
-    Source["Any Tabular Dataset (CSV / Raw Data)"] --> Adapter["Column Mapping Adapter (Synthetic / Walmart / Rossmann / Auto)"]
-    Adapter --> Contract["Canonical Business Contract (BusinessTimeSeriesRecord)"]
-    Contract --> Validation["7-Dimensional Validation Engine"]
-    Validation --> Leakage["Temporal Lookahead Leakage Detection"]
-    Leakage --> Profile["Statistical Profiler & Quality Scorer (0-100)"]
-    Profile --> Result["Standardized IngestionResult"]
+flowchart TD
+    Source["Data Source (Raw CSV / Tabular)"] --> Ingestion["Phase 2 Ingestion & Mapping"]
+    Ingestion --> Contract["Canonical Business Contract"]
+    Contract --> DPA["Phase 3 Data Processing Agent"]
+    
+    subgraph DPA["Data Processing Agent Pipeline"]
+        C1["Cleaning & Type Normalization"] --> C2["Dynamic Business-Key Duplicate Handling"]
+        C2 --> C3["Invalid Value Rectification"]
+        C3 --> C4["Temporal-Safe Missing Value Imputation"]
+        C4 --> C5["Chronological Sorting & Gap Integrity Analysis"]
+        C5 --> C6["Outlier Profiling (Detect & Flag Default)"]
+        C6 --> C7["Leakage-Safe Feature Engineering (Calendar, Lag, Rolling)"]
+        C7 --> C8["Chronological Walk-Forward Train/Val/Test Split"]
+    end
+    
+    DPA --> Processed["Processed Canonical Dataset"]
+    Processed --> FA["Phase 4 Forecasting Agent"]
+
+    subgraph FA["Forecasting Agent Architecture"]
+        direction TB
+        F1["Series Filter & Minimum History Check"] --> F2["Temporal Split: Train vs Validation"]
+        F2 --> M1["Prophet Forecaster"]
+        F2 --> M2["LightGBM Forecaster"]
+        F2 --> M3["PyTorch LSTM Forecaster"]
+        M1 & M2 & M3 --> ValEval["Validation Error Evaluation (MAE/RMSE/MAPE)"]
+        ValEval --> Rank["Deterministic Model Ranking"]
+        Rank --> Select["Select Best Candidate"]
+        Select --> Refit["Refit Selected Model on (Train + Validation)"]
+        Refit --> GenFC["Multi-Step Future Horizon Projection"]
+        GenFC --> Int["Prediction Intervals (Bayesian / Residual Empirical)"]
+    end
+
+    FA --> FCResult["Machine-Readable ForecastResult"]
+    FCResult --> P5["Phase 5 Forecast Evaluation (Future)"]
+    FCResult --> P6["Phase 6 Explainability Agent (Future)"]
 ```
 
 ---
@@ -94,14 +140,19 @@ flowchart LR
 - Node.js v18+ & npm
 - Git
 
-### 2. Generate Synthetic Retail Dataset
-Generate the deterministic 50,000-row synthetic retail dataset and the 150-row sample dataset:
+### 2. Generate and Process Synthetic Retail Dataset
+Generate the deterministic 50,000-row synthetic retail dataset and process it:
 ```bash
+# 1. Generate 50,000 synthetic rows (and 150-row sample)
 python scripts/generate_synthetic_retail_data.py --rows 50000 --seed 42
+
+# 2. Run Data Processing Agent pipeline (cleaning, imputation, lags, rolling features)
+python scripts/process_retail_dataset.py
 ```
 Outputs:
-- Full 50,000-row dataset: `data/raw/synthetic/retail_50k.csv` (excluded from Git)
-- Sample 150-row dataset: `data/sample/retail_sample.csv` (tracked by Git)
+- Full 50,000-row raw dataset: `data/raw/synthetic/retail_50k.csv` (excluded from Git)
+- Full 50,000-row processed dataset: `data/processed/synthetic/retail_processed.csv` (excluded from Git)
+- Verified samples: `data/sample/retail_sample.csv`, `data/sample/retail_processed_sample.csv` (tracked by Git)
 
 ### 3. Backend Setup & Run
 ```bash
@@ -113,7 +164,7 @@ python -m venv .venv
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Run automated tests (39 tests)
+# Run automated tests (79 unit tests across all phases)
 pytest tests/
 
 # Launch FastAPI development server
@@ -122,8 +173,13 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 
 Key API endpoints:
 - Root Health Check: `http://127.0.0.1:8000/health`
-- Dataset Ingestion & Validation API: `http://127.0.0.1:8000/api/v1/datasets/sample-summary`
-- Mapping Templates Discovery: `http://127.0.0.1:8000/api/v1/datasets/mapping-templates`
+- Dataset Ingestion API: `http://127.0.0.1:8000/api/v1/datasets/sample-summary`
+- Data Processing API: `http://127.0.0.1:8000/api/v1/process/sample-summary`
+- Forecasting Health: `http://127.0.0.1:8000/api/v1/forecast/health`
+- Forecasting Supported Models: `http://127.0.0.1:8000/api/v1/forecast/models`
+- Forecasting Default Config: `http://127.0.0.1:8000/api/v1/forecast/config`
+- Fast Sample Forecast: `http://127.0.0.1:8000/api/v1/forecast/sample?model=lightgbm&horizon=7`
+- Run Forecasting Agent: `POST http://127.0.0.1:8000/api/v1/forecast/run`
 - Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
 
 ### 4. Frontend Setup & Run
@@ -132,7 +188,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell.
+Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell and the Phase 4 live forecasting panel.
 
 ---
 
@@ -143,9 +199,9 @@ Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI inte
 | **Phase 0** | **Project Foundation & Governance** | ✅ Completed |
 | **Phase 1** | **Application Skeleton** | ✅ Completed |
 | **Phase 2** | **Dataset Ingestion & Generic Data Foundation** | ✅ Completed |
-| **Phase 3** | **Data Processing Agent** | ⏳ Next |
-| **Phase 4** | **Forecasting Agent** | ⏳ Pending |
-| **Phase 5** | **Forecast Evaluation** | ⏳ Pending |
+| **Phase 3** | **Data Processing Agent** | ✅ Completed |
+| **Phase 4** | **Forecasting Agent** | ✅ Completed |
+| **Phase 5** | **Forecast Evaluation** | ⏳ Next |
 | **Phase 6** | **Explainability Agent** | ⏳ Pending |
 | **Phase 7** | **Decision Intelligence Agent** | ⏳ Pending |
 | **Phase 8** | **Multi-Agent Orchestration** | ⏳ Pending |

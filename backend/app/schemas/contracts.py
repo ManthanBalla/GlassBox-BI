@@ -23,25 +23,7 @@ class DatasetMetadata(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Upload timestamp")
 
 
-class ForecastRequest(BaseModel):
-    """Contract for initiating a forecast task (Phase 4+)."""
-    dataset_id: str = Field(..., description="Identifier of the ingested dataset to model")
-    target_column: str = Field(..., description="Column name of the target variable to forecast")
-    horizon: int = Field(default=30, ge=1, le=365, description="Number of future time steps to project")
-    model_preference: Optional[str] = Field(default="auto", description="Model family preference: 'auto', 'statistical', 'ml'")
-    confidence_level: float = Field(default=0.95, ge=0.5, le=0.99, description="Prediction interval confidence level")
-
-
-class ForecastResult(BaseModel):
-    """Contract for forecast outputs returned to frontend (Phase 4+)."""
-    forecast_id: str = Field(..., description="Unique identifier for the forecast run")
-    dataset_id: str = Field(..., description="Associated dataset identifier")
-    horizon: int = Field(..., ge=1, description="Projection horizon length")
-    model_name: str = Field(..., description="Name of the trained forecasting model")
-    predictions: List[Dict[str, Any]] = Field(default_factory=list, description="List of forecast points with timestamps and values")
-    confidence_intervals: Optional[Dict[str, Any]] = Field(default=None, description="Upper and lower prediction bounds")
-    metrics: Optional[Dict[str, float]] = Field(default=None, description="Evaluation error metrics (MAE, RMSE, MAPE)")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Forecast completion timestamp")
+from backend.app.schemas.forecasting import ForecastRequest, ForecastResult
 
 
 class ExplanationResult(BaseModel):

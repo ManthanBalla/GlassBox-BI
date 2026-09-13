@@ -26,6 +26,31 @@ from backend.app.schemas.ingestion import (
     DatasetProfile,
     IngestionResult,
 )
+from backend.app.schemas.processing import (
+    MissingNumericStrategy,
+    MissingCategoricalStrategy,
+    MissingTargetStrategy,
+    DuplicateStrategy,
+    OutlierMethod,
+    OutlierStrategy,
+    DataProcessingConfig,
+    ProcessingAuditEntry,
+    TimeSeriesIntegrityReport,
+    OutlierSummary,
+    TemporalSplitMetadata,
+    DataProcessingResult,
+)
+
+from backend.app.schemas.forecasting import (
+    ForecastModelType,
+    SelectionMetric,
+    ForecastStatus,
+    ForecastingConfig,
+    ForecastPoint,
+    ModelEvaluationScore,
+    ModelSelectionResult,
+    ModelMetadata,
+)
 
 __all__ = [
     "HealthResponse",
@@ -48,4 +73,26 @@ __all__ = [
     "NumericSummary",
     "DatasetProfile",
     "IngestionResult",
+    "MissingNumericStrategy",
+    "MissingCategoricalStrategy",
+    "MissingTargetStrategy",
+    "DuplicateStrategy",
+    "OutlierMethod",
+    "OutlierStrategy",
+    "DataProcessingConfig",
+    "ProcessingAuditEntry",
+    "TimeSeriesIntegrityReport",
+    "OutlierSummary",
+    "TemporalSplitMetadata",
+    "DataProcessingResult",
+    "ForecastModelType",
+    "SelectionMetric",
+    "ForecastStatus",
+    "ForecastingConfig",
+    "ForecastPoint",
+    "ModelEvaluationScore",
+    "ModelSelectionResult",
+    "ModelMetadata",
 ]
+
+

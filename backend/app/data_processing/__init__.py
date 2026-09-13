@@ -9,6 +9,18 @@ from backend.app.data_processing.leakage import TemporalLeakageDetector
 from backend.app.data_processing.quality import DataQualityScorer
 from backend.app.data_processing.profiling import DataProfiler
 from backend.app.data_processing.ingestion import DatasetIngestionService
+from backend.app.data_processing.processing import (
+    AuditTrailTracker,
+    DataCleaner,
+    DuplicateHandler,
+    InvalidValueHandler,
+    MissingValueHandler,
+    OutlierDetector,
+    TimeSeriesAnalyzer,
+    FeatureEngineer,
+    TimeSeriesSplitter,
+    GenericBusinessDataProcessor,
+)
 
 __all__ = [
     "DataValidator",
@@ -16,4 +28,15 @@ __all__ = [
     "DataQualityScorer",
     "DataProfiler",
     "DatasetIngestionService",
+    "AuditTrailTracker",
+    "DataCleaner",
+    "DuplicateHandler",
+    "InvalidValueHandler",
+    "MissingValueHandler",
+    "OutlierDetector",
+    "TimeSeriesAnalyzer",
+    "FeatureEngineer",
+    "TimeSeriesSplitter",
+    "GenericBusinessDataProcessor",
 ]
+

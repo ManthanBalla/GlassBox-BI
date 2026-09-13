@@ -6,10 +6,11 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 2 — Dataset Ingestion & Generic Data Foundation**
+**Phase 4 — Forecasting Agent**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.3.0-alpha`
+- **Version**: `0.5.0-alpha`
+- **Next Phase**: Phase 5 — Forecast Evaluation
 
 ---
 
@@ -59,12 +60,74 @@ This document serves as the single source of truth for current project progress,
 - [x] **Source-Agnostic Ingestion Service (`backend/app/data_processing/ingestion.py`)**:
   - Robust CSV ingestion from paths, raw bytes, or IO buffers with graceful error handling.
 - [x] **API v1 Dataset Endpoints (`backend/app/api/v1/endpoints/ingestion.py`)**:
-  - `POST /api/v1/datasets/ingest/file` (multipart CSV upload)
-  - `POST /api/v1/datasets/ingest/local` (server-side local file ingestion)
-  - `GET /api/v1/datasets/sample-summary` (instant summary of committed sample dataset)
-  - `GET /api/v1/datasets/mapping-templates` (benchmark templates discovery)
+  - `POST /api/v1/datasets/ingest/file`, `POST /api/v1/datasets/ingest/local`, `GET /api/v1/datasets/sample-summary`, `GET /api/v1/datasets/mapping-templates`.
+
+### Phase 3 — Data Processing Agent
+- [x] **Generic Business Data Processor (`GenericBusinessDataProcessor`)**:
+  - Decoupled from specific retailers; operates directly on `BusinessTimeSeriesRecord` canonical contract.
+  - Full end-to-end pipeline: Cleaning -> Duplicate Resolution -> Invalid Value Rectification -> Missing Value Imputation -> Chronological Sorting -> Gap Integrity -> Outlier Profiling -> Leakage-Safe Feature Engineering -> Quality Score Re-evaluation -> Temporal Splitting -> Machine-Readable Audit Report.
+- [x] **Data Processing Pipeline Modules (`backend/app/data_processing/processing/`)**:
+  - `cleaning.py`: Type normalization, whitespace trimming, ISO date parsing, numeric coercion.
+  - `duplicates.py`: Dynamic composite business key (`date` + `entity_id` + `product_id`), exact duplicate detection, conflicting record resolution, deterministic policy (`keep_first`, `keep_last`, `flag`).
+  - `invalid_values.py`: Rectification of non-positive prices, negative inventory, negative target values, and binary clamping for promotion/holiday flags.
+  - `missing_values.py`: Imputation via entity-grouped median, forward-fill, mode, and explicit "Unknown". Strict target safety: missing target values are never fabricated from future observations (dropped by default).
+  - `outliers.py`: Group-aware IQR and Z-Score outlier detection. **Default behavior is DETECT & FLAG** (`target_outlier = 1`) to preserve legitimate promotion/holiday demand spikes.
+  - `time_series.py`: Enforces strict chronological sorting, infers cadence ('D', 'W'), and computes `TimeSeriesIntegrityReport` (missing periods, largest gap, continuity percentage).
+  - `feature_engineering.py`: Zero-leakage calendar features, strictly historical lag features (`lag_1`, `lag_7`, `lag_14`, `lag_28`), and rolling features (`rolling_mean_7`, `rolling_mean_14`, `rolling_mean_28`, `rolling_std_7`, `rolling_std_28`) using `shift(1).rolling(w)`.
+  - `splitting.py`: Chronological walk-forward train/val/test splitting utility (70/15/15) generating `TemporalSplitMetadata` without random shuffling or model training.
+  - `audit.py`: Thread-safe `AuditTrailTracker` logging every transformation step with before/after summaries.
+- [x] **API Endpoints (`backend/app/api/v1/endpoints/processing.py`)**:
+  - `POST /api/v1/process/file`: Ingest & process uploaded CSV.
+  - `POST /api/v1/process/local`: Process server-side CSV.
+  - `GET /api/v1/process/config`: Return default `DataProcessingConfig`.
+  - `GET /api/v1/process/sample-summary`: Execute processing pipeline on committed retail sample.
+- [x] **High-Performance Processing Execution**:
+  - `scripts/process_retail_dataset.py`: Processed 50,000 synthetic rows in **0.91 seconds** with 23 generated features.
+  - Full output saved to `data/processed/synthetic/retail_processed.csv` (12.54 MB, Git ignored).
+  - Sample output saved to `data/sample/retail_processed_sample.csv` (18.79 KB, Git tracked).
 - [x] **Automated Testing**:
-  - 39 unit tests passing across all test modules (`test_synthetic_generator.py`, `test_validation.py`, `test_ingestion.py`, `test_api_v1.py`, `test_schemas.py`, `test_foundation.py`).
+  - 61 unit tests passing across 10 modules (100% pass rate in 1.88s).
+
+### Phase 4 — Forecasting Agent
+- [x] **Common Model Interface (`BaseForecastModel`)**:
+  - Defines abstract lifecycle methods: `fit`, `predict`, `evaluate_validation`, `compute_residual_prediction_interval`, `get_model_metadata`, `save_model`, `load_model`.
+  - Zero model-specific branching across the core pipeline.
+- [x] **Prophet Forecasting Adapter (`ProphetForecaster`)**:
+  - Mapping: `date` -> `ds`, `target` -> `y`. Fits on chronological training data without lookahead.
+  - Bayesian uncertainty interval projection via Stan/Prophet backend.
+  - Non-negative demand clamping and JSON checkpoint serialization via `model_to_json`.
+- [x] **LightGBM Forecasting Adapter (`LightGBMForecaster`)**:
+  - Feature matrix incorporating calendar attributes, lags (`lag_1`, `lag_7`, `lag_14`, `lag_28`), and rolling statistics.
+  - Multi-step recursive forecasting without future target leakage (future lags dynamically constructed from predictions).
+  - Empirical validation-residual prediction intervals and `joblib` persistence.
+- [x] **PyTorch LSTM Forecasting Adapter (`LSTMForecaster`)**:
+  - Clean sequence-to-one architecture (`nn.LSTM` -> `nn.Dropout` -> `nn.Linear`).
+  - **Strict Zero-Leakage Scaling**: `StandardScaler` parameters (`mean`, `std`) fitted solely on training partition.
+  - Early stopping with configurable patience, deterministic random seeds, and PyTorch checkpoint persistence (`.pt`).
+- [x] **Generic Forecasting Agent (`GenericForecastingAgent`)**:
+  - Organization-agnostic series filtering (`entity_id` + `product_id`).
+  - Minimum history verification (gracefully yields `INSUFFICIENT_HISTORY` when observations < 15).
+  - Chronological walk-forward train/val/test splitting.
+  - Candidate model competition and dynamic ranking based on validation metrics (**MAE**, **RMSE**, **MAPE**).
+  - **Model Failure Isolation**: Errors in individual candidate forecasters do not crash the agent.
+  - Winning model refit on combined (Train + Validation) partition prior to future forecasting.
+  - Multi-step future horizon projection with transparent uncertainty bounds.
+  - Checkpoint persistence under `models/saved/<model_name>/`.
+- [x] **REST API Endpoints (`backend/app/api/v1/endpoints/forecasting.py`)**:
+  - `POST /api/v1/forecast/run`: Executes full candidate competition, validation ranking, and future forecast.
+  - `POST /api/v1/forecast/train`: Triggers model competition and checkpoint saving.
+  - `GET /api/v1/forecast/models`: Discovers supported models, feature requirements, and history constraints.
+  - `GET /api/v1/forecast/config`: Returns system default hyperparameters and selection criteria.
+  - `GET /api/v1/forecast/health`: Checks status of Prophet, LightGBM, PyTorch, and local persistence directory.
+  - `GET /api/v1/forecast/sample`: Fast one-click demonstration forecast on benchmark data.
+- [x] **Minimal Development Frontend Panel (`ForecastingPanel.tsx`)**:
+  - Entity/product series selectors, horizon selector (7, 14, 28 days), candidate toggles, metric choice (MAE/RMSE/MAPE).
+  - Live execution button with loading indicators.
+  - Candidate validation ranking comparison table with training durations and status.
+  - Interactive SVG time-series chart rendering point predictions and shaded uncertainty bands.
+  - Forecast points table with lower and upper bounds.
+- [x] **Automated Testing Suite**:
+  - 79 tests passing (18 new Phase 4 unit tests across models, agent competition, API, and leakage prevention).
 
 ---
 
@@ -72,9 +135,7 @@ This document serves as the single source of truth for current project progress,
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 3** | Data Processing Agent | **Next Recommended Phase** |
-| **Phase 4** | Forecasting Agent | Pending |
-| **Phase 5** | Forecast Evaluation | Pending |
+| **Phase 5** | Forecast Evaluation | **Next Recommended Phase** |
 | **Phase 6** | Explainability Agent | Pending |
 | **Phase 7** | Decision Intelligence Agent | Pending |
 | **Phase 8** | Multi-Agent Orchestration | Pending |
@@ -97,22 +158,34 @@ This document serves as the single source of truth for current project progress,
 | **ADR-006** | Pydantic v2 Schema Contracts for Module Decoupling | Accepted | Domain schemas serve as explicit data contracts, enabling frontend and backend development to progress with guaranteed interface stability. |
 | **ADR-007** | Organization-Agnostic Canonical Data Contract | Accepted | GlassBox-BI is strictly decoupled from specific vendors (such as Walmart or Rossmann). All external tabular datasets map their columns into `BusinessTimeSeriesRecord` via adapters. |
 | **ADR-008** | Explainable Arithmetic Data Quality Scoring | Accepted | Data quality scores are computed via deterministic, explainable arithmetic with transparent deduction logs rather than opaque machine learning models. |
+| **ADR-009** | Outlier Detection & Flagging by Default | Accepted | Retail demand spikes during promotions and holidays are legitimate business signals. GlassBox-BI detects and flags anomalies (`target_outlier = 1`) rather than deleting or clipping them by default. |
+| **ADR-010** | Shifted Rolling Windows for Zero-Leakage Features | Accepted | All rolling aggregations apply `shift(1)` prior to rolling window computation to guarantee that current-period target values never contaminate historical feature vectors. |
+| **ADR-011** | Model-Agnostic Common Interface for Forecasters | Accepted | Enforces `BaseForecastModel` contract across Prophet, LightGBM, and LSTM, allowing candidate model competition, ranking, and future expansion without altering agent orchestration code. |
+| **ADR-012** | Strict Validation vs Holdout Test Separation | Accepted | Phase 4 uses the validation partition exclusively for internal model ranking and selection. The holdout test partition is strictly excluded and reserved for formal benchmark evaluation in Phase 5. |
+| **ADR-013** | Zero Target Leakage in Multi-Step Recursive Forecasting | Accepted | For future multi-step horizons, LightGBM and LSTM compute future lags recursively from the model's own prior predictions, strictly preventing lookahead into actual future targets. |
+| **ADR-014** | PyTorch for Local Deep-Learning Stack | Accepted | On Windows / Python 3.14 environments where TensorFlow wheel distributions are unavailable, PyTorch provides native sequence modeling, deterministic seeding, and high performance. |
 
 ---
 
-## 5. Known Limitations
+## 5. Known Boundaries & Limitations
 
-- **No Feature Engineering or Model Training**: By design, cleaning transformations, feature engineering pipelines, forecasting models, and autonomous agents are not implemented in Phase 2 (scheduled for Phases 3–9).
-- **The Synthetic Dataset is for Testing**: The 50,000-row synthetic retail dataset is a development/testing dataset. Real benchmark datasets (Walmart, Rossmann) will be integrated later without modifying the canonical data contract.
+- **Validation vs. Test Boundary**: Phase 4 validation metrics are utilized strictly for internal candidate model ranking and selection. Formal benchmark evaluation and test set metrics belong exclusively to Phase 5.
+- **Explainability & SHAP Deferral**: While `ForecastResult` retains model metadata and feature names for auditability, SHAP/LIME explainability is strictly deferred to Phase 6.
+- **Decision Intelligence Deferral**: Prescriptive business recommendations, inventory simulations, and risk scorings are strictly deferred to Phase 7.
+- **Multi-Agent Orchestration**: Autonomous multi-agent coordination (LangGraph/LangChain) is deferred to Phase 8.
+- **Development Benchmark Dataset**: The 50,000-row synthetic retail dataset is the primary development benchmark. Real benchmark datasets (Walmart, Rossmann) will be integrated in subsequent phases without modifying the canonical data contract.
 
 ---
 
 ## 6. How to Run the Project
 
-### Generate Synthetic Retail Dataset
+### Generate and Process Synthetic Retail Dataset
 ```bash
-# Generates data/raw/synthetic/retail_50k.csv (50,000 rows) and data/sample/retail_sample.csv (150 rows)
+# 1. Generates data/raw/synthetic/retail_50k.csv (50,000 rows) and data/sample/retail_sample.csv (150 rows)
 python scripts/generate_synthetic_retail_data.py --rows 50000 --seed 42
+
+# 2. Runs GenericBusinessDataProcessor on 50k rows, generating retail_processed.csv & sample
+python scripts/process_retail_dataset.py
 ```
 
 ### Running Backend Server
@@ -122,7 +195,8 @@ uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 Endpoints:
 - Health Check: `http://127.0.0.1:8000/health`
 - Dataset Sample Summary: `http://127.0.0.1:8000/api/v1/datasets/sample-summary`
-- Mapping Templates: `http://127.0.0.1:8000/api/v1/datasets/mapping-templates`
+- Data Processing Sample Summary: `http://127.0.0.1:8000/api/v1/process/sample-summary`
+- Processing Config: `http://127.0.0.1:8000/api/v1/process/config`
 - Interactive Swagger UI: `http://127.0.0.1:8000/docs`
 
 ### Running Frontend
@@ -136,7 +210,7 @@ Dashboard available at `http://localhost:3000`.
 ```bash
 pytest tests/
 # or
-python -m unittest discover -s tests -p "test_*.py"
+python -m unittest discover -s tests/unit
 ```
 
 ---
@@ -147,8 +221,13 @@ python -m unittest discover -s tests -p "test_*.py"
   - `tests/unit/test_synthetic_generator.py`: 7 tests passing (reproducibility, 50k rows, non-negative target, column schema)
   - `tests/unit/test_validation.py`: 9 tests passing (schema validation, missing values, duplicates, date checks, leakage detection)
   - `tests/unit/test_ingestion.py`: 11 tests passing (canonical contract, column mapping, quality scorer, profiler, ingestion service, API endpoints)
+  - `tests/unit/test_data_processor.py`: 11 tests passing (initialization, config defaults, missing numeric/categorical/target, duplicates, invalid values, outlier flagging, sorting, gaps, quality scores, reproducibility)
+  - `tests/unit/test_feature_engineering.py`: 4 tests passing (calendar features, strictly historical lags, shift-1 rolling zero leakage, absent optional columns)
+  - `tests/unit/test_temporal_splitting.py`: 2 tests passing (chronological cutoff boundaries, ratio adherence, no random shuffling)
+  - `tests/unit/test_processing_api.py`: 5 tests passing (config endpoint, sample processing, local file processing, 404 handling, file upload)
   - `tests/unit/test_api_v1.py`: 4 tests passing (system health, API v1 health, contract specs discovery, CORS)
   - `tests/unit/test_schemas.py`: 5 tests passing (Pydantic contract validation)
   - `tests/unit/test_foundation.py`: 3 tests passing (directory structure and package importability)
-  - **Total**: **39/39 passing** (100% pass rate in 0.90s)
+  - **Total**: **61/61 passing** (100% pass rate in 1.88s)
 - **Frontend Build**: `npm run build` — **Passing** (0 TypeScript errors)
+

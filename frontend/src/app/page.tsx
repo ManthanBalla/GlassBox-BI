@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import BackendStatus from "@/components/BackendStatus";
 import ArchitectureCard from "@/components/ArchitectureCard";
 import ContractsViewer from "@/components/ContractsViewer";
+import ForecastingPanel from "@/components/ForecastingPanel";
 
 export default function Home() {
   return (
@@ -87,6 +88,9 @@ export default function Home() {
 
           {/* Active Contract Explorer */}
           <ContractsViewer />
+
+          {/* Phase 4 Development Verification: Forecasting Agent */}
+          <ForecastingPanel />
 
           {/* Development Notice */}
           <div className="text-center py-6 border-t border-slate-900 text-xs text-slate-400">
