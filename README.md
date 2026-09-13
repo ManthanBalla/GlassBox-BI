@@ -116,14 +116,19 @@ GlassBox-BI follows a disciplined, phase-by-phase development lifecycle:
 
 | Phase | Focus | Status |
 |---|---|---|
-| **Phase 0** | **Project Foundation & Development Governance** | ✅ Completed |
-| **Phase 1** | **Data Processing & Ingestion Engine** | ⏳ Next |
-| **Phase 2** | **Forecasting Engine (Baselines & ML Models)** | ⏳ Pending |
-| **Phase 3** | **Explainability Engine (XAI & SHAP Decomposition)** | ⏳ Pending |
-| **Phase 4** | **Decision Intelligence & Scenario Simulation** | ⏳ Pending |
-| **Phase 5** | **Agentic Layer & Multi-Agent Orchestration** | ⏳ Pending |
-| **Phase 6** | **Frontend BI Dashboard** | ⏳ Pending |
-| **Phase 7** | **End-to-End Integration, Validation & Polish** | ⏳ Pending |
+| **Phase 0** | **Project Foundation & Governance** | ✅ Completed |
+| **Phase 1** | **Application Skeleton** | ⏳ Next |
+| **Phase 2** | **Dataset Ingestion** | ⏳ Pending |
+| **Phase 3** | **Data Processing Agent** | ⏳ Pending |
+| **Phase 4** | **Forecasting Agent** | ⏳ Pending |
+| **Phase 5** | **Forecast Evaluation** | ⏳ Pending |
+| **Phase 6** | **Explainability Agent** | ⏳ Pending |
+| **Phase 7** | **Decision Intelligence Agent** | ⏳ Pending |
+| **Phase 8** | **Multi-Agent Orchestration** | ⏳ Pending |
+| **Phase 9** | **Feedback & Self-Correction Loop** | ⏳ Pending |
+| **Phase 10** | **Dashboard** | ⏳ Pending |
+| **Phase 11** | **MLflow, Testing & Deployment** | ⏳ Pending |
+| **Phase 12** | **Final Integration & Validation** | ⏳ Pending |
 
 Detailed milestone specifications are documented in [`docs/development_phases.md`](docs/development_phases.md).
 
