@@ -6,43 +6,51 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 0 — Project Foundation & Development Governance**
+**Phase 1 — Application Skeleton**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.1.0-alpha`
+- **Version**: `0.2.0-alpha`
 
 ---
 
-## 2. Completed Work (Phase 0)
+## 2. Completed Work
 
-- [x] **Repository Verification**: Inspected directory, verified Git status (`main` branch pointing to remote `https://github.com/ManthanBalla/GlassBox-BI.git`).
+### Phase 0 — Project Foundation & Governance
+- [x] **Repository Verification**: Initialized Git repository on branch `main` with remote origin tracking.
 - [x] **Modular Directory Structure**: Created modular directory skeleton separating backend, frontend, data, models, docs, and tests.
-  - `backend/app/api`: API route definitions.
-  - `backend/app/core`: Configuration and logging.
-  - `backend/app/data_processing`: Ingestion and preprocessing placeholder module.
-  - `backend/app/forecasting`: Forecasting engine placeholder module.
-  - `backend/app/explainability`: Explainability (XAI) placeholder module.
-  - `backend/app/decision_intelligence`: Scenario analysis placeholder module.
-  - `backend/app/agents`: Autonomous agents placeholder module.
-  - `backend/app/orchestration`: Multi-agent pipeline orchestrator placeholder module.
-  - `data/raw` & `data/processed`: Local data storage directories.
-  - `models/checkpoints` & `models/saved`: Model storage directories.
-  - `frontend`: Frontend dashboard placeholder directory.
-  - `tests/unit` & `tests/integration`: Unit and integration test suites.
-- [x] **Project Governance Documents**:
-  - `README.md`: Overview, architecture map, setup guide, roadmap.
-  - `PROJECT_STATE.md`: Living status, environment variables, run guide, testing state.
-  - `CHANGELOG.md`: Chronological log of versions and phase changes.
-  - `.gitignore`: Rules for Python, Frontend, IDE, virtual environments, and secrets.
-  - `.env.example`: Configuration template for local setup.
-- [x] **Technical Documentation**:
-  - `docs/architecture.md`: Comprehensive system blueprint and dataflow specifications.
-  - `docs/development_phases.md`: Phase-by-phase roadmap (Phase 0 through Phase 12).
-- [x] **Automated Testing Setup**:
-  - Initialized `tests/unit/test_foundation.py` verifying directory structure, import integrity, and settings sanity.
-- [x] **Baseline Code**:
-  - `backend/app/main.py`: Minimal FastAPI health-check application.
-  - `backend/requirements.txt`: Minimal Phase 0 dependencies.
+- [x] **Project Governance Documents**: `README.md`, `PROJECT_STATE.md`, `CHANGELOG.md`, `.gitignore`, `.env.example`.
+- [x] **Technical Documentation**: `docs/architecture.md` and 13-phase roadmap in `docs/development_phases.md`.
+- [x] **Automated Testing Setup**: Base test suite with directory structure sanity tests.
+
+### Phase 1 — Application Skeleton
+- [x] **FastAPI Backend Application**:
+  - Operational server running with asynchronous lifespan events and structured logging.
+  - Global exception handling preventing raw internal error/stack trace leaks.
+  - Modular API routing structure: `/api/v1` router aggregator.
+  - Health check endpoints: `GET /health` (root) and `GET /api/v1/health`.
+  - CORS middleware enabled for local frontend development (`http://localhost:3000`, `http://127.0.0.1:3000`).
+- [x] **Pydantic v2 Contract Layer**:
+  - `HealthResponse`: System health, version, uptime timestamp.
+  - `DatasetMetadata`: Contract for future dataset cataloging (Phase 2).
+  - `ForecastRequest` & `ForecastResult`: Contracts for forecasting agent pipelines (Phase 4).
+  - `ExplanationResult`: Contract for SHAP attributions and time-series signal decomposition (Phase 6).
+  - `RecommendationResult`: Contract for scenario analysis and prescriptive insights (Phase 7).
+  - Contract discovery endpoint: `GET /api/v1/contracts/specs`.
+- [x] **Next.js TypeScript Frontend**:
+  - Modern dashboard shell created in `frontend/` (Next.js 16, TypeScript, Tailwind CSS, App Router).
+  - Glassmorphic dark UI with custom gradient tokens.
+  - Navigation sidebar with future-phase badges (Dashboard, Dataset, Forecasting, Explainability, Decisions, Agent Activity).
+  - Interactive Contracts Explorer displaying all Phase 1 Pydantic contracts.
+  - Architecture blueprint cards for planned analytical engines.
+- [x] **Frontend → Backend Communication Highway**:
+  - Live connection verification pinging `GET /health`.
+  - Three distinct operational states: `Checking Connection...`, `Backend Status: Connected` (with roundtrip latency in ms), and `Backend Status: Unavailable`.
+  - Graceful failure handling without internal exception exposure.
+  - Configurable backend target URL via `NEXT_PUBLIC_API_URL`.
+- [x] **Automated & Manual Verification**:
+  - 12 unit tests passing in `tests/unit/` (pytest and unittest).
+  - Frontend production build compiles cleanly (`npm run build`, Turbopack).
+  - Browser verification of live connected and disconnected states.
 
 ---
 
@@ -50,8 +58,7 @@ This document serves as the single source of truth for current project progress,
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 1** | Application Skeleton | **Next Recommended Phase** |
-| **Phase 2** | Dataset Ingestion | Pending |
+| **Phase 2** | Dataset Ingestion | **Next Recommended Phase** |
 | **Phase 3** | Data Processing Agent | Pending |
 | **Phase 4** | Forecasting Agent | Pending |
 | **Phase 5** | Forecast Evaluation | Pending |
@@ -70,49 +77,70 @@ This document serves as the single source of truth for current project progress,
 | ADR ID | Title | Status | Rationale |
 |---|---|---|---|
 | **ADR-001** | Modular Separation of Engines | Accepted | Separate data processing, forecasting, explainability, and decision intelligence into isolated Python packages to ensure independent testability and maintainability. |
-| **ADR-002** | Zero Premature Logic in Phase 0 | Accepted | Strictly avoided implementing machine learning models, SHAP routines, or agent loops in Phase 0 to guarantee an uncluttered foundation. |
+| **ADR-002** | Zero Premature Logic in Phase 0 & 1 | Accepted | Strictly avoided implementing machine learning models, SHAP routines, or agent loops in Phases 0 and 1 to guarantee an uncluttered foundation. |
 | **ADR-003** | FastAPI for Backend Service | Accepted | FastAPI provides high-performance asynchronous execution, native Pydantic validation, and auto-generated OpenAPI documentation. |
 | **ADR-004** | Isolated Data & Model Directories | Accepted | Datasets (`data/`) and model weights (`models/`) are kept outside the source code tree and ignored by Git to prevent repository bloat. |
+| **ADR-005** | Next.js App Router & Tailwind for Frontend | Accepted | Next.js with TypeScript and Tailwind CSS provides a reactive, type-safe development environment with rapid build times and native environment variable handling. |
+| **ADR-006** | Pydantic v2 Schema Contracts for Module Decoupling | Accepted | Domain schemas (`DatasetMetadata`, `ForecastRequest`, etc.) serve as explicit data contracts, enabling frontend and backend development to progress with guaranteed interface stability. |
 
 ---
 
-## 5. Known Issues
+## 5. Known Limitations
 
-- None. Repository foundation is clean and verified.
+- **No Active ML / Agent Logic**: By design, predictive models, SHAP interpretability, and agent reasoning loops are not implemented in Phase 1 and will be introduced starting from Phase 3/4.
+- **Local Storage Only**: Datasets and model checkpoints currently point to local directories (`data/`, `models/`).
 
 ---
 
 ## 6. How to Run the Project
 
-### Setup Environment
-```bash
-# 1. Create and activate virtual environment
-python -m venv .venv
-.venv\Scripts\activate  # Windows
-# or source .venv/bin/activate (Linux/macOS)
+### Prerequisites
+- Python 3.10+
+- Node.js v18+ & npm
 
-# 2. Install baseline requirements
+### Running the Backend
+```bash
+# 1. Install backend dependencies
 pip install -r backend/requirements.txt
 
-# 3. Copy environment template
+# 2. Configure environment (optional, defaults provided)
 cp .env.example .env
-```
 
-### Run Tests
-```bash
-pytest tests/
-```
-
-### Run Backend Server
-```bash
+# 3. Start the FastAPI development server
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+The backend will be live at `http://127.0.0.1:8000`.
+- Health Check: `http://127.0.0.1:8000/health`
+- Swagger Documentation: `http://127.0.0.1:8000/docs`
+- Contract Discovery: `http://127.0.0.1:8000/api/v1/contracts/specs`
+
+### Running the Frontend
+```bash
+# 1. Navigate to the frontend directory
+cd frontend
+
+# 2. Install dependencies (if not already installed)
+npm install
+
+# 3. Start Next.js development server
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Running Automated Tests
+```bash
+# Run backend test suite
+pytest tests/
+# or
+python -m unittest discover -s tests -p "test_*.py"
+
+# Run frontend build check
+cd frontend && npm run build
 ```
 
 ---
 
 ## 7. Environment Variables Reference
-
-The platform uses `.env` (derived from `.env.example`). The variables are documented below:
 
 | Variable | Default Value | Description |
 |---|---|---|
@@ -123,9 +151,10 @@ The platform uses `.env` (derived from `.env.example`). The variables are docume
 | `SECRET_KEY` | *(placeholder)* | Cryptographic key for session/token verification. |
 | `BACKEND_HOST` | `127.0.0.1` | Local listening host address for FastAPI. |
 | `BACKEND_PORT` | `8000` | Port for the backend API server. |
-| `ALLOWED_ORIGINS`| `http://localhost:3000` | Comma-separated CORS allowed origins. |
+| `ALLOWED_ORIGINS`| `http://localhost:3000,http://127.0.0.1:3000` | Comma-separated CORS allowed origins. |
+| `NEXT_PUBLIC_API_URL` | `http://127.0.0.1:8000` | Target FastAPI backend URL for the Next.js frontend. |
 | `DATABASE_URL` | `sqlite:///./glassbox.db` | Connection string for metadata database. |
-| `GEMINI_API_KEY` | *(optional/placeholder)* | API key for Gemini models (Phase 5 agents). |
+| `GEMINI_API_KEY` | *(optional/placeholder)* | API key for Gemini models (Phase 3-9 agents). |
 | `OPENAI_API_KEY` | *(optional/placeholder)* | API key for OpenAI models (optional fallback). |
 | `LLM_MODEL` | `gemini-2.0-flash` | Default foundation model for agentic workflows. |
 | `DATA_DIR` | `./data` | Filepath root for dataset storage. |
@@ -135,10 +164,9 @@ The platform uses `.env` (derived from `.env.example`). The variables are docume
 
 ## 8. Testing Status
 
-- **Framework**: `pytest`
-- **Unit Tests**: `tests/unit/test_foundation.py`
-  - Directory existence test: **Passing**
-  - Backend package import test: **Passing**
-  - Modular package boundary test: **Passing**
-- **Integration Tests**: Ready for Phase 1 API integration.
-- **Coverage**: 100% of Phase 0 foundation code.
+- **Backend Test Framework**: `pytest` / `unittest`
+  - `tests/unit/test_foundation.py`: Directory structure and package importability (3 tests) — **Passing**
+  - `tests/unit/test_api_v1.py`: Root health, v1 health, contract specs, CORS headers (4 tests) — **Passing**
+  - `tests/unit/test_schemas.py`: Validation of all 5 Pydantic contract schemas (5 tests) — **Passing**
+- **Frontend Build**: `npm run build` (Turbopack) — **Passing** (Static pages generated, 0 TypeScript errors)
+- **End-to-End Communication**: Live browser verification of connected and graceful failure states — **Passing**

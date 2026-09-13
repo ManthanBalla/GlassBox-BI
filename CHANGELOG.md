@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.0-alpha] - Phase 1: Application Skeleton (2026-09-13)
+
+### Added
+- **Backend Application Foundation (FastAPI)**:
+  - Configured asynchronous application lifespan management, central structured logging, and global exception handlers.
+  - Implemented modular `/api/v1` router aggregator in `backend/app/api/v1/api.py`.
+  - Added primary health check endpoints: `GET /health` (root) and `GET /api/v1/health` returning `HealthResponse`.
+  - Added schema contract discovery endpoint: `GET /api/v1/contracts/specs`.
+  - Enabled CORS middleware supporting local frontend development origins (`localhost:3000`, `127.0.0.1:3000`).
+  - Added `backend/app/services/` layer boundary.
+- **Pydantic v2 Contract Layer (`backend/app/schemas/`)**:
+  - `HealthResponse`: Diagnostic schema with version, timestamp, and phase status.
+  - `DatasetMetadata`: Future dataset ingestion and cataloging specification.
+  - `ForecastRequest`: Multi-step time-series forecasting parameter contract.
+  - `ForecastResult`: Standardized prediction output schema with confidence bounds and metrics.
+  - `ExplanationResult`: Glass-box XAI schema for SHAP attributions and signal decomposition.
+  - `RecommendationResult`: Prescriptive decision intelligence contract for scenario analysis.
+- **Frontend Dashboard Shell (Next.js + TypeScript + Tailwind CSS)**:
+  - Initialized Next.js 16 (App Router) in `frontend/` with TypeScript, Tailwind CSS, and custom glassmorphism tokens.
+  - Created responsive `Sidebar` with future-phase navigation badges.
+  - Created `Header` component with GlassBox-BI title, subtitle, and runtime mode indicators.
+  - Created `BackendStatus` component featuring live connectivity testing to `GET /health`, real-time latency measurement, and graceful failure handling.
+  - Created `ArchitectureCard` and `ContractsViewer` components for interactive exploration of upcoming modules and Pydantic schemas.
+- **Automated & Integration Testing**:
+  - `tests/unit/test_api_v1.py`: Tests for `/health`, `/api/v1/health`, contract specs discovery, and CORS headers.
+  - `tests/unit/test_schemas.py`: Validation of all 5 domain contract schemas and constraint checking.
+  - Updated `tests/unit/test_foundation.py` to verify `schemas` and `services` directories.
+  - Frontend production build verification (`npm run build`).
+
+---
+
 ## [0.1.0-alpha] - Phase 0: Project Foundation & Development Governance (2026-09-13)
 
 ### Added
@@ -17,23 +48,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Created `PROJECT_STATE.md` tracking active phase, completed milestones, architectural decisions, run guides, and testing status.
   - Created `CHANGELOG.md` for phase-by-phase version history.
 - **Modular Directory Skeleton**:
-  - Established `backend/app/` package structure with clean architectural boundaries:
-    - `core/`: Settings and configurations.
-    - `api/`: API routing and endpoint schemas.
-    - `data_processing/`: Modular placeholder for data ingestion, cleaning, and transformation.
-    - `forecasting/`: Modular placeholder for time-series forecasting models.
-    - `explainability/`: Modular placeholder for XAI, SHAP, and signal decomposition.
-    - `decision_intelligence/`: Modular placeholder for what-if simulations and recommendations.
-    - `agents/`: Modular placeholder for autonomous agent roles.
-    - `orchestration/`: Modular placeholder for multi-agent execution graphs.
-  - Created `backend/requirements.txt` with baseline dependencies for FastAPI, Pydantic, and Pytest.
+  - Established `backend/app/` package structure with clean architectural boundaries.
+  - Created `backend/requirements.txt` with baseline dependencies.
   - Created `backend/app/main.py` providing a lightweight baseline health-check server.
-  - Created `frontend/` directory with `.gitkeep` ready for UI initialization.
-  - Created `data/raw/` and `data/processed/` with `.gitkeep` for dataset management.
-  - Created `models/checkpoints/` and `models/saved/` with `.gitkeep` for model persistence.
+  - Created `frontend/` directory placeholder.
+  - Created `data/` and `models/` directory trees.
 - **Architectural Documentation**:
   - `docs/architecture.md`: Detailed system architecture, Mermaid dataflow diagram, module boundaries, and design principles.
-  - `docs/development_phases.md`: Multi-phase implementation roadmap spanning Phase 0 through Phase 12 with acceptance criteria.
+  - `docs/development_phases.md`: 13-phase implementation roadmap spanning Phase 0 through Phase 12 with acceptance criteria.
 - **Automated Sanity Testing**:
   - Initialized `tests/` hierarchy with `tests/unit/test_foundation.py` to verify package importability and folder structure completeness.
 
@@ -41,7 +63,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Upcoming Releases]
 
-- **Phase 1 (v0.2.0-alpha)**: Application Skeleton
 - **Phase 2 (v0.3.0-alpha)**: Dataset Ingestion
 - **Phase 3 (v0.4.0-alpha)**: Data Processing Agent
 - **Phase 4 (v0.5.0-alpha)**: Forecasting Agent

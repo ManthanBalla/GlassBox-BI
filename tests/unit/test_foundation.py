@@ -19,6 +19,8 @@ class TestPhase0Foundation(unittest.TestCase):
             "backend/app",
             "backend/app/api",
             "backend/app/core",
+            "backend/app/schemas",
+            "backend/app/services",
             "backend/app/data_processing",
             "backend/app/forecasting",
             "backend/app/explainability",

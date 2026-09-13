@@ -2,9 +2,10 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-0%20%7C%20Foundation-blue.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-1%20%7C%20App%20Skeleton-blue.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
 
 ---
 
@@ -23,43 +24,48 @@ GlassBox-BI combines robust time-series forecasting, glass-box explainability te
 
 ## 🏛️ System Architecture
 
-The project is structured into clear, decoupled layers:
+The project is structured into clean, decoupled layers:
 
 ```
 GlassBox-BI/
-├── backend/                        # Backend Application Layer
+├── backend/                        # FastAPI Backend Application
 │   ├── app/
-│   │   ├── api/                    # REST API endpoints & routers
-│   │   ├── core/                   # Configuration, settings & utilities
-│   │   ├── data_processing/        # Data ingestion, cleaning & validation
-│   │   ├── forecasting/            # Statistical & ML forecasting models
-│   │   ├── explainability/         # XAI engine (SHAP, feature attributions)
-│   │   ├── decision_intelligence/  # Scenario simulation & recommendations
-│   │   ├── agents/                 # Specialized autonomous agents
-│   │   ├── orchestration/          # Multi-agent workflow orchestrator
-│   │   └── main.py                 # FastAPI application entrypoint
+│   │   ├── api/                    # Versioned REST APIs (/api/v1/)
+│   │   ├── core/                   # Config, settings, logging & CORS
+│   │   ├── schemas/                # Pydantic v2 domain & contract schemas
+│   │   ├── services/               # Business logic & domain services
+│   │   ├── data_processing/        # Data ingestion & cleansing boundary
+│   │   ├── forecasting/            # Forecasting models boundary
+│   │   ├── explainability/         # XAI & SHAP attribution boundary
+│   │   ├── decision_intelligence/  # Scenario simulation boundary
+│   │   ├── agents/                 # Autonomous agents boundary
+│   │   ├── orchestration/          # Multi-agent orchestrator boundary
+│   │   └── main.py                 # Application entrypoint & health checks
 │   └── requirements.txt            # Backend dependencies
-├── frontend/                       # Frontend Dashboard (Interactive BI UI)
-├── data/                           # Local data store
-│   ├── raw/                        # Untouched raw business datasets
-│   └── processed/                  # Validated, preprocessed datasets
+├── frontend/                       # Next.js 16 + TypeScript Dashboard
+│   ├── src/
+│   │   ├── app/                    # Next.js App Router (Layout & Dashboard)
+│   │   └── components/             # Sidebar, Header, BackendStatus, Contracts
+│   ├── public/                     # Static assets
+│   └── package.json                # Frontend dependencies & scripts
+├── data/                           # Local data storage
+│   ├── raw/                        # Raw uploaded business datasets
+│   └── processed/                  # Cleaned, validated datasets
 ├── models/                         # Serialized models and checkpoints
 │   ├── checkpoints/
 │   └── saved/
-├── tests/                          # Test Suite
-│   ├── unit/                       # Unit tests for domain modules
-│   └── integration/                # End-to-end and API integration tests
-├── docs/                           # Architecture and development docs
-│   ├── architecture.md             # In-depth architectural blueprint
-│   └── development_phases.md       # Phased implementation roadmap
-├── .env.example                    # Environment variable configuration template
+├── tests/                          # Automated test suites
+│   ├── unit/                       # Unit tests (API, schemas, foundation)
+│   └── integration/                # Integration test suites
+├── docs/                           # Documentation
+│   ├── architecture.md             # System architecture blueprint
+│   └── development_phases.md       # 13-Phase development roadmap
+├── .env.example                    # Global environment variables template
 ├── .gitignore                      # Git ignore rules
 ├── CHANGELOG.md                    # Project change history
-├── PROJECT_STATE.md                # Living status and governance tracker
+├── PROJECT_STATE.md                # Single source of truth for project state
 └── README.md                       # Project documentation entry point
 ```
-
-For detailed architectural specifications and dataflow diagrams, see [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
@@ -67,58 +73,63 @@ For detailed architectural specifications and dataflow diagrams, see [`docs/arch
 
 ### 1. Prerequisites
 - Python 3.10+
+- Node.js v18+ & npm
 - Git
 
-### 2. Clone and Setup Environment
+### 2. Backend Setup & Run
 ```bash
 # Clone the repository
 git clone https://github.com/ManthanBalla/GlassBox-BI.git
 cd GlassBox-BI
 
-# Create a virtual environment
+# Create and activate Python virtual environment
 python -m venv .venv
+.venv\Scripts\activate       # Windows
+# or source .venv/bin/activate  (Linux/macOS)
 
-# Activate the virtual environment
-# On Windows:
-.venv\Scripts\activate
-# On macOS / Linux:
-source .venv/bin/activate
-
-# Install Phase 0 dependencies
+# Install backend dependencies
 pip install -r backend/requirements.txt
-```
 
-### 3. Configure Environment Variables
-Copy `.env.example` to `.env`:
-```bash
+# Copy environment configuration
 cp .env.example .env
-```
-Adjust parameters (such as `BACKEND_PORT` or API keys) as needed.
 
-### 4. Run Verification Tests
-```bash
+# Run backend test suite
 pytest tests/
-```
 
-### 5. Start the Backend Development Server
-```bash
+# Launch FastAPI development server
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
-API documentation will be available at:
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- Health Check: `http://127.0.0.1:8000/health`
+
+Backend endpoints will be available at:
+- Root Health Check: `http://127.0.0.1:8000/health`
+- API v1 Health Check: `http://127.0.0.1:8000/api/v1/health`
+- Contract Discovery: `http://127.0.0.1:8000/api/v1/contracts/specs`
+- Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
+
+### 3. Frontend Setup & Run
+```bash
+# In a new terminal, navigate to frontend directory
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start Next.js development server
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the interactive GlassBox-BI dashboard shell with live backend health monitoring.
 
 ---
 
 ## 🗺️ Phased Development Roadmap
 
-GlassBox-BI follows a disciplined, phase-by-phase development lifecycle:
+GlassBox-BI follows a disciplined 13-phase development strategy:
 
 | Phase | Focus | Status |
 |---|---|---|
 | **Phase 0** | **Project Foundation & Governance** | ✅ Completed |
-| **Phase 1** | **Application Skeleton** | ⏳ Next |
-| **Phase 2** | **Dataset Ingestion** | ⏳ Pending |
+| **Phase 1** | **Application Skeleton** | ✅ Completed |
+| **Phase 2** | **Dataset Ingestion** | ⏳ Next |
 | **Phase 3** | **Data Processing Agent** | ⏳ Pending |
 | **Phase 4** | **Forecasting Agent** | ⏳ Pending |
 | **Phase 5** | **Forecast Evaluation** | ⏳ Pending |

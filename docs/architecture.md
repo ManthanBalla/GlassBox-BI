@@ -90,12 +90,22 @@ flowchart TD
   - *Decision Intelligence Agent*: Evaluates simulated scenarios and drafts executive decision memos.
 - **Orchestration**: Manages the multi-agent graph, state transitions, human-in-the-loop approvals, and self-correction loops.
 
-### 3.6 API Layer (`backend/app/api`)
-- FastAPI-powered asynchronous REST API.
-- Endpoints for dataset ingestion, forecast triggers, explainability queries, scenario simulations, and agent run status.
+### 3.6 API & Contract Layer (`backend/app/api` & `backend/app/schemas`)
+- **FastAPI Engine**: Asynchronous ASGI backend handling high-concurrency requests with automatic OpenAPI interactive documentation (`/docs`).
+- **Versioned API Structure**: Endpoints are mounted under `/api/v1/` through a centralized router aggregator (`api_router`).
+- **Pydantic v2 Schema Contracts**: Clean type-safe data transfer objects decoupling the frontend from computational engines:
+  - `HealthResponse`: Diagnostics, versioning, and status metrics (`/health`, `/api/v1/health`).
+  - `DatasetMetadata`: Metadata for ingested business datasets (Phase 2).
+  - `ForecastRequest` & `ForecastResult`: Forecasting invocation and prediction payloads (Phase 4).
+  - `ExplanationResult`: SHAP attribution and signal decomposition results (Phase 6).
+  - `RecommendationResult`: Prescriptive action items and simulation scenarios (Phase 7).
+- **CORS & Resilience**: Configured for local development (`localhost:3000`), with global exception handlers preventing internal stack trace exposure.
 
-### 3.7 Frontend Layer (`frontend/`)
-- Responsive business dashboard presenting forecast curves, interactive attribution charts (waterfall, beeswarm), scenario sliders, and AI agent reasoning summaries.
+### 3.7 Frontend Presentation Layer (`frontend/`)
+- **Next.js App Router & TypeScript**: Reactive web application rendering server and client components.
+- **Glassmorphic UI**: Tailored dark-mode interface with vibrant neon accents and responsive flex layouts.
+- **Frontend-to-Backend Highway**: Asynchronous client-side data fetching targeting `${NEXT_PUBLIC_API_URL}` with live latency measurement.
+- **Resilient Connectivity Monitoring**: Visual status pills (`Connected`, `Checking...`, `Unavailable`) with graceful fallback states and retry mechanisms.
 
 ---
 
