@@ -19,3 +19,7 @@ scikit-learn>=1.4.0
 lightgbm>=4.0.0
 prophet>=1.1.5
 torch>=2.2.0
+
+# Explainability & Attribution (Phase 6)
+shap>=0.52.0
+lime>=0.2.0.1

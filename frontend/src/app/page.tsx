@@ -8,6 +8,7 @@ import ArchitectureCard from "@/components/ArchitectureCard";
 import ContractsViewer from "@/components/ContractsViewer";
 import ForecastingPanel from "@/components/ForecastingPanel";
 import EvaluationPanel from "@/components/EvaluationPanel";
+import ExplainabilityPanel from "@/components/ExplainabilityPanel";
 
 export default function Home() {
   return (
@@ -95,6 +96,9 @@ export default function Home() {
 
           {/* Phase 5 Development Verification: Holdout Test-Set Benchmark */}
           <EvaluationPanel />
+
+          {/* Phase 6 Development Verification: Explainability Agent (SHAP / LIME / Component) */}
+          <ExplainabilityPanel />
 
           {/* Development Notice */}
           <div className="text-center py-6 border-t border-slate-900 text-xs text-slate-400">

@@ -2,7 +2,7 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-5%20%7C%20Forecast%20Evaluation-green.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-6%20%7C%20Explainability%20Agent-purple.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
@@ -64,12 +64,20 @@ GlassBox-BI/
 │   │   │   ├── evaluator.py        # ModelTestEvaluator for holdout test partitions
 │   │   │   ├── benchmark.py        # ForecastingBenchmarkEngine (Prophet vs LightGBM vs LSTM)
 │   │   │   └── schemas.py          # Evaluation contracts re-export
-│   │   ├── explainability/         # XAI & SHAP attribution boundary (Phase 6)
+│   │   ├── explainability/         # XAI & SHAP/LIME attribution module (Phase 6)
+│   │   │   ├── base.py             # BaseExplainer abstract interface
+│   │   │   ├── shap_explainer.py   # TreeExplainer (LGBM) & sequence attribution (LSTM)
+│   │   │   ├── lime_explainer.py   # LimeTabularExplainer local linear surrogates
+│   │   │   ├── prophet_explainer.py # Component-based additive decomposition
+│   │   │   ├── feature_adapter.py  # Feature alignment & zero-leakage training sampling
+│   │   │   ├── validation.py       # Pre-explanation guards & compatibility matrix
+│   │   │   ├── agent.py            # ExplainabilityAgent coordinator
+│   │   │   └── schemas.py          # Explainability schemas & contracts
 │   │   ├── decision_intelligence/  # Scenario simulation boundary (Phase 7)
 │   │   ├── agents/                 # Autonomous agents boundary (Phase 3+)
 │   │   ├── orchestration/          # Multi-agent orchestrator boundary (Phase 8)
 │   │   └── main.py                 # Application entrypoint & health checks
-│   └── requirements.txt            # Backend dependencies
+│   └── requirements.txt            # Backend dependencies (FastAPI, LightGBM, Prophet, Torch, SHAP, LIME)
 ├── frontend/                       # Next.js 16 + TypeScript Dashboard
 ├── data/                           # Data directory tree
 │   ├── raw/                        # Local raw datasets (Git ignored)
@@ -82,8 +90,9 @@ GlassBox-BI/
 ├── scripts/                        # Utility & data generation scripts
 │   ├── generate_synthetic_retail_data.py # Deterministic 50k dataset generator
 │   ├── process_retail_dataset.py   # Full pipeline execution on 50k dataset
-│   └── verify_phase5_benchmark.py  # Holdout test set formal benchmark verification
-├── tests/                          # Automated test suites (103 unit tests, 0 regressions)
+│   ├── verify_phase5_benchmark.py  # Holdout test set formal benchmark verification
+│   └── verify_phase6_explainability.py # Live verification for SHAP, LIME, and Prophet
+├── tests/                          # Automated test suites (134 unit tests, 0 regressions)
 │   └── unit/
 ├── docs/                           # Architecture and roadmap documentation
 │   ├── architecture.md             # System architecture blueprint

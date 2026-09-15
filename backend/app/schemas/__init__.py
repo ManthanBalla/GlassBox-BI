@@ -59,6 +59,19 @@ from backend.app.schemas.evaluation import (
     EvaluationRequest,
     BenchmarkResult,
 )
+from backend.app.schemas.explainability import (
+    ExplanationMethod,
+    ExplanationType,
+    FeatureContribution,
+    GlobalFeatureImportance,
+    ExplanationFidelity,
+    ExplanationAuditTrail,
+    LocalExplanationRequest,
+    GlobalExplanationRequest,
+    ExplanationResult as FormalExplanationResult,
+    MethodCompatibilityInfo,
+    ExplainabilityConfigSchema,
+)
 
 __all__ = [
     "HealthResponse",
@@ -107,6 +120,17 @@ __all__ = [
     "ModelTestEvaluation",
     "EvaluationRequest",
     "BenchmarkResult",
+    "ExplanationMethod",
+    "ExplanationType",
+    "FeatureContribution",
+    "GlobalFeatureImportance",
+    "ExplanationFidelity",
+    "ExplanationAuditTrail",
+    "LocalExplanationRequest",
+    "GlobalExplanationRequest",
+    "FormalExplanationResult",
+    "MethodCompatibilityInfo",
+    "ExplainabilityConfigSchema",
 ]
 
 

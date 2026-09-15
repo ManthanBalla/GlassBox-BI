@@ -6,11 +6,11 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 5 — Forecast Evaluation**
+**Phase 6 — Explainability Agent**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.6.0-alpha`
-- **Next Phase**: Phase 6 — Explainability Agent
+- **Version**: `0.7.0-alpha`
+- **Next Phase**: Phase 7 — Decision Intelligence Agent
 
 ---
 
@@ -155,14 +155,43 @@ This document serves as the single source of truth for current project progress,
 - [x] **Automated Testing Suite**:
   - 103 tests passing (24 new Phase 5 unit tests across metrics, evaluator, benchmark engine, API, and invariants). Zero regressions.
 
+### Phase 6 — Explainability Agent
+- [x] **Explainability Architecture & Contracts (`backend/app/explainability/`)**:
+  - `base.py`: Model-agnostic `BaseExplainer` abstract interface with local/global contracts and contribution ranking.
+  - `schemas.py`: Pydantic models for `LocalExplanationRequest`, `GlobalExplanationRequest`, `ExplanationResult`, `FeatureContribution`, `GlobalFeatureImportance`, `ExplanationFidelity`, `ExplanationAuditTrail`.
+  - `feature_adapter.py`: Dynamic feature reconstruction and zero-leakage training background sampling.
+  - `validation.py`: Model fitting assertions, background sample size checks, and `MODEL_COMPATIBILITY` matrix.
+  - `agent.py`: `ExplainabilityAgent` coordinator dispatching model-specific strategies, verifying model immutability, and assembling audit trails.
+- [x] **Model-Specific Explainability Implementations**:
+  - **LightGBM**: Native `shap.TreeExplainer` providing exact additive Shapley attributions across tabular calendar, lag, rolling, and business regressors. `LIMEExplainer` generating local linear surrogates with reproducible random seeds.
+  - **PyTorch LSTM**: Model-agnostic sequence attribution explaining the univariate lookback target sequence (`lag_1` to `lag_{lookback}`). Zero fabrication of tabular features.
+  - **Prophet**: `ProphetComponentExplainer` providing exact additive decomposition into `trend`, `weekly_seasonality`, `yearly_seasonality`, and `holiday_effects`. Formally reported as `component_based`.
+- [x] **Explanation Fidelity & Quality Metrics**:
+  - Additive reconstruction error: $|\hat{y} - (\text{base\_value} + \sum \phi_i)|$.
+  - Normalized fidelity score: $\max(0, 1 - \text{error} / (|\hat{y}| + 10^{-6}))$.
+  - LIME local surrogate $R^2$ goodness-of-fit.
+- [x] **Model Immutability & Zero Data Leakage**:
+  - Pre- and post-explanation model state snapshots verify model weights, trees, historical buffers, and scalers are 100% immutable.
+  - Background reference distributions are sampled strictly from historical training partitions (`train_df`).
+- [x] **REST API Endpoints (`backend/app/api/v1/endpoints/explainability.py`)**:
+  - `GET /api/v1/explainability/health`: Subsystem health and dependency verification.
+  - `GET /api/v1/explainability/methods`: Explicit model-to-method compatibility matrix.
+  - `GET /api/v1/explainability/config`: Default configuration and fidelity thresholds.
+  - `POST /api/v1/explainability/local`: Instance-level local feature attribution.
+  - `POST /api/v1/explainability/global`: Dataset-level global feature importance ranking.
+  - `GET /api/v1/explainability/sample`: Fast pre-computed sample explanation.
+- [x] **Minimal Development Frontend Component (`ExplainabilityPanel.tsx`)**:
+  - Model and method selectors, Local vs Global mode toggle, positive/negative impact breakdown with colored bars, ranked feature table, fidelity metrics card, and audit drawer.
+- [x] **Automated Testing Suite**:
+  - **134 tests passing** (31 new Phase 6 unit tests across base contracts, SHAP, LIME, Prophet, model immutability regression, and APIs). Zero failures, zero regressions.
+
 ---
 
 ## 3. Pending Phases
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 6** | Explainability Agent (SHAP / Interpretability) | **Next Recommended Phase** |
-| **Phase 7** | Decision Intelligence Agent | Pending |
+| **Phase 7** | Decision Intelligence Agent | **Next Recommended Phase** |
 | **Phase 8** | Multi-Agent Orchestration | Pending |
 | **Phase 9** | Feedback & Self-Correction Loop | Pending |
 | **Phase 10** | Dashboard | Pending |

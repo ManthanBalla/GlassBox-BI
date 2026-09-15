@@ -5,6 +5,47 @@ All notable changes to the **GlassBox-BI** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-alpha] - Phase 6: Explainability Agent (2026-09-15)
+
+### Added
+- **Explainability Architecture & Base Interface (`backend/app/explainability/`)**:
+  - `base.py`: Abstract `BaseExplainer` defining standard lifecycle: `explain_local`, `explain_global`, `get_metadata`, with ranked signed contributions and global importance helpers.
+  - `schemas.py` & `backend/app/schemas/explainability.py`: Type-safe contracts for `LocalExplanationRequest`, `GlobalExplanationRequest`, `ExplanationResult`, `FeatureContribution`, `GlobalFeatureImportance`, `ExplanationFidelity`, `ExplanationAuditTrail`, `MethodCompatibilityInfo`.
+  - `feature_adapter.py`: `ExplainabilityFeatureAdapter` extracting exact input vectors and sampling zero-leakage training backgrounds.
+  - `validation.py`: `ExplainabilityValidator` and explicit `MODEL_COMPATIBILITY` matrix.
+  - `agent.py`: `ExplainabilityAgent` coordinator dispatching model-specific strategies, verifying model immutability, and producing audit payloads.
+- **Model-Specific Explainability Strategies**:
+  - **LightGBM**: Native `shap.TreeExplainer` computing exact additive Shapley attributions across tabular calendar, lag, rolling, and business regressors. `LIMEExplainer` generating local linear surrogates with reproducible random seeds (`seed=42`).
+  - **PyTorch LSTM**: Model-agnostic sequence attribution explaining the univariate lookback target sequence (`lag_1` to `lag_{lookback}`). Zero fabrication of tabular calendar/business features.
+  - **Prophet**: `ProphetComponentExplainer` providing exact additive decomposition into `trend`, `weekly_seasonality`, `yearly_seasonality`, and `holiday_effects`. Formally reported as `component_based`.
+- **Explanation Fidelity & Quality Metrics**:
+  - Additive reconstruction error: $|\hat{y} - (\text{base\_value} + \sum \phi_i)|$.
+  - Normalized fidelity score: $\max(0, 1 - \text{error} / (|\hat{y}| + 10^{-6}))$.
+  - LIME local surrogate $R^2$ goodness-of-fit.
+- **Model Immutability & Zero Data Leakage**:
+  - Pre- and post-explanation model state snapshots verify model weights, trees, historical buffers, and scalers are 100% immutable.
+  - Background reference distributions are sampled strictly from historical training partitions (`train_df`).
+- **REST API Endpoints (`backend/app/api/v1/endpoints/explainability.py`)**:
+  - `GET /api/v1/explainability/health`: Subsystem health and dependency verification.
+  - `GET /api/v1/explainability/methods`: Explicit model-to-method compatibility matrix.
+  - `GET /api/v1/explainability/config`: Default configuration and fidelity thresholds.
+  - `POST /api/v1/explainability/local`: Instance-level local feature attribution.
+  - `POST /api/v1/explainability/global`: Dataset-level global feature importance ranking.
+  - `GET /api/v1/explainability/sample`: Fast pre-computed sample explanation.
+- **Minimal Development Frontend Component (`frontend/src/components/ExplainabilityPanel.tsx`)**:
+  - Model and method selectors, Local vs Global mode toggle, positive/negative impact breakdown with colored bars, ranked feature table, fidelity metrics card, and audit drawer.
+- **Verification Script & Empirical Attribution**:
+  - `scripts/verify_phase6_explainability.py`: Evaluated live explanations on synthetic retail dataset (`STORE_001` / `PROD_001`):
+    - LightGBM + SHAP: Base Value `18.6584`, Prediction `18.3315`, Fidelity Score `99.99%`, Error `0.0025`.
+    - LightGBM + LIME: Surrogate Intercept `17.8001`, Surrogate $R^2$ `0.204`.
+    - PyTorch LSTM + SHAP: Sequence attributions over historical target window (`lag_1` to `lag_14`), Fidelity Score `100.0%`.
+    - Prophet: Exact decomposition into `trend` (+20.7879) and `weekly_seasonality` (-1.0209).
+- **Automated Testing Suite**:
+  - Added 31 new Phase 6 unit tests across `test_explainability_base.py`, `test_shap_explainer.py`, `test_lime_explainer.py`, `test_prophet_explainer.py`, `test_explainability_agent.py`, and `test_explainability_api.py`.
+  - Expanded total test suite from 103 to **134 passing tests** (100% pass rate, 0 regressions).
+
+---
+
 ## [0.6.0-alpha] - Phase 5: Formal Forecasting Evaluation (2026-09-15)
 
 ### Added

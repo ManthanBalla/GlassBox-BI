@@ -234,10 +234,29 @@ flowchart TD
   - **Prophet**: Test MAE = `2.3206`, Test RMSE = `2.7221`, Test MAPE = `11.12%` (Val MAE `2.3711`)
   - **PyTorch LSTM**: Test MAE = `2.6528`, Test RMSE = `3.4797`, Test MAPE = `12.66%` (Val MAE `1.9655`)
 
-### 3.5 Explainability Module (`backend/app/explainability`) (Phase 6)
-- **Glass-Box Principle**: Ensures every forecast is accompanied by interpretability metadata.
-- **Feature Attribution**: Global and local feature attributions using SHAP (SHapley Additive exPlanations) and surrogate models.
-- **Time-Series Decomposition**: Separates signals into trend, seasonality, cyclical effects, and residual noise.
+### 3.5 Explainability Agent (`backend/app/explainability`) (Phase 6 - Completed)
+- **Glass-Box Principle**: Ensures every point forecast is accompanied by mathematical feature attributions and fidelity metrics.
+- **Model-Specific Explainability Strategy**:
+  - **LightGBM (Gradient Boosted Trees)**:
+    - *SHAP*: Native `shap.TreeExplainer` providing exact, efficient Shapley values across tabular calendar, lag, rolling, and business regressors.
+    - *LIME*: `lime.lime_tabular.LimeTabularExplainer` generating local linear surrogates with reproducible random seeds.
+    - *Global Importance*: Mean absolute SHAP value: $\frac{1}{N} \sum_{i=1}^N |\phi_{ij}|$.
+  - **PyTorch LSTM (Recurrent Sequence Neural Network)**:
+    - *Lookback Sequence Attribution*: Explains the univariate historical target sequence (`lag_1` to `lag_{lookback}`). Does *not* fabricate tabular calendar/business features since the model consumes strictly target sequences.
+    - *Model-Agnostic Sampling*: Lightweight background reference distribution sampled strictly from training sequences.
+  - **Prophet (Generalized Additive Model)**:
+    - *Additive Component Decomposition*: Interprets forecasts mathematically through `trend`, `weekly_seasonality`, `yearly_seasonality`, and `holiday_effects`.
+    - *Scientific Honesty*: Formally reports `explanation_method = "component_based"` rather than fabricating pseudo-tabular SHAP values.
+- **Local vs. Global Interpretability**:
+  - *Local*: Answers *"Why did the model produce THIS specific forecast?"*, decomposing point predictions into positive drivers, negative drivers, and base values.
+  - *Global*: Answers *"What generally drives this forecasting model across the dataset?"*, ranking features by aggregate importance.
+- **Explanation Fidelity & Quality Metrics**:
+  - Additive Reconstruction Error: $|\hat{y} - (\text{base\_value} + \sum \phi_i)|$.
+  - Fidelity Score: $\max\left(0, 1 - \frac{\text{error}}{|\hat{y}| + 10^{-6}}\right)$.
+  - LIME Local Surrogate $R^2$ goodness-of-fit.
+- **Model Immutability & Zero Data Leakage**:
+  - *Immutability*: Model weights, trees, historical buffers, and scalers are snapshotted pre-explanation and verified identical post-explanation.
+  - *Zero Leakage*: Background distributions are sampled strictly from historical training partitions (`train_df`). Test-set targets are never used for explanations.
 
 ### 3.6 Decision Intelligence Module (`backend/app/decision_intelligence`) (Phase 7)
 - **Scenario Simulation**: "What-if" analysis allowing business users to simulate driver adjustments (e.g., price increase, marketing spend shift).
