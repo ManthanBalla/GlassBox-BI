@@ -184,17 +184,67 @@ flowchart TD
 - **Prediction Intervals**: Transparent uncertainty bounds (native Prophet Bayesian intervals; empirical validation-residual intervals for LightGBM and LSTM).
 - **Model Checkpoint Persistence**: Checkpoint serialization to `models/saved/<model_name>/` via `save_forecaster` and safe deserialization via `load_forecaster`.
 
-### 3.4 Explainability Module (`backend/app/explainability`)
+### 3.4 Formal Forecasting Evaluation Module (`backend/app/evaluation`) (Phase 5)
+- **Architectural Principle**: Formal quantitative evaluation layer operating strictly on the untouched holdout test partition. Decoupled from model selection and tuning.
+- **Academic & Research Stance**:
+  > *Phase 4 performs model selection based exclusively on Validation MAE.*
+  > *Phase 5 evaluates candidate models on the holdout Test partition as an independent, reproducible scientific benchmark.*
+  > *Test-set metrics are reported independently and NEVER modify or override model selection.*
+- **Evaluation Architecture & Workflow**:
+  ```
+                 CANONICAL DATASET
+                         │
+                         ▼
+             Chronological Split (70/15/15)
+             ┌───────────┬───────────┐
+             ▼                       ▼
+      [Train + Validation]      [Holdout Test Set]
+             │                       │
+             ▼                       │
+     Phase 4 Selection               │
+    (Validation MAE Winner)          │
+             │                       │
+             ▼                       ▼
+       Fitted Models        Formal Test Evaluator
+   (Prophet, LGBM, LSTM)             │
+             │                       │
+             └───────────┬───────────┘
+                         ▼
+             Quantitative Test Metrics
+                (MAE, RMSE, MAPE)
+                         │
+                         ▼
+             Formal Benchmark Report
+  ```
+- **Metric Definitions & Mathematical Rigor**:
+  - **Mean Absolute Error (MAE)**:
+    $$\text{MAE} = \frac{1}{n} \sum_{i=1}^n |y_i - \hat{y}_i|$$
+  - **Root Mean Squared Error (RMSE)**:
+    $$\text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^n (y_i - \hat{y}_i)^2}$$
+  - **Mean Absolute Percentage Error (MAPE)**:
+    $$\text{MAPE} = \frac{100}{n_{\text{valid}}} \sum_{i: |y_i| > 10^{-7}} \left| \frac{y_i - \hat{y}_i}{y_i} \right|$$
+  - **Zero-Target Handling Strategy**: When ground-truth targets are zero ($y_i = 0$), division by zero is mathematically undefined. GlassBox-BI excludes zero-target observations from MAPE while explicitly tracking and reporting `zero_target_count` for full audit transparency.
+- **Core Invariants & Guarantees**:
+  1. **Strict Test Set Isolation**: Holdout test targets are never passed into model fitting (`fit()`), feature engineering, or hyperparameter selection.
+  2. **Model Selection Decoupling**: Phase 4 validation winner (`lightgbm`) is independently preserved; `test_set_used_for_selection` is guaranteed `False` in all results.
+  3. **Zero Lookahead Contamination**: Multi-step test forecasts generate lags recursively from previous predictions rather than ground truth test targets.
+  4. **Reproducibility**: Deterministic seeding (`seed=42`) guarantees repeatable benchmark evaluations.
+- **Empirical Benchmark on Synthetic Retail 50K Dataset** (`STORE_001` / `PROD_001`, 14-day holdout):
+  - **LightGBM**: Test MAE = `1.7051`, Test RMSE = `2.7491`, Test MAPE = `7.40%` (Phase 4 Validation Winner: Val MAE `1.8736`)
+  - **Prophet**: Test MAE = `2.3206`, Test RMSE = `2.7221`, Test MAPE = `11.12%` (Val MAE `2.3711`)
+  - **PyTorch LSTM**: Test MAE = `2.6528`, Test RMSE = `3.4797`, Test MAPE = `12.66%` (Val MAE `1.9655`)
+
+### 3.5 Explainability Module (`backend/app/explainability`) (Phase 6)
 - **Glass-Box Principle**: Ensures every forecast is accompanied by interpretability metadata.
 - **Feature Attribution**: Global and local feature attributions using SHAP (SHapley Additive exPlanations) and surrogate models.
 - **Time-Series Decomposition**: Separates signals into trend, seasonality, cyclical effects, and residual noise.
 
-### 3.5 Decision Intelligence Module (`backend/app/decision_intelligence`)
+### 3.6 Decision Intelligence Module (`backend/app/decision_intelligence`) (Phase 7)
 - **Scenario Simulation**: "What-if" analysis allowing business users to simulate driver adjustments (e.g., price increase, marketing spend shift).
 - **Prescriptive Insights**: Translates forecast gaps and key drivers into human-readable strategic recommendations.
 - **Risk Quantification**: Confidence bounds and scenario volatility metrics.
 
-### 3.6 Agent Layer & Multi-Agent Orchestration (`backend/app/agents` & `backend/app/orchestration`)
+### 3.7 Agent Layer & Multi-Agent Orchestration (`backend/app/agents` & `backend/app/orchestration`) (Phase 8+)
 - **Role-Based Agents**:
   - *Data Processing Agent*: Audits dataset quality and recommends transformations.
   - *Forecasting Agent*: Selects optimal models, tunes parameters, and validates performance.

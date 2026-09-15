@@ -7,6 +7,7 @@ import BackendStatus from "@/components/BackendStatus";
 import ArchitectureCard from "@/components/ArchitectureCard";
 import ContractsViewer from "@/components/ContractsViewer";
 import ForecastingPanel from "@/components/ForecastingPanel";
+import EvaluationPanel from "@/components/EvaluationPanel";
 
 export default function Home() {
   return (
@@ -91,6 +92,9 @@ export default function Home() {
 
           {/* Phase 4 Development Verification: Forecasting Agent */}
           <ForecastingPanel />
+
+          {/* Phase 5 Development Verification: Holdout Test-Set Benchmark */}
+          <EvaluationPanel />
 
           {/* Development Notice */}
           <div className="text-center py-6 border-t border-slate-900 text-xs text-slate-400">

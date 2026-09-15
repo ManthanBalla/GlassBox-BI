@@ -6,11 +6,11 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 4 — Forecasting Agent**
+**Phase 5 — Forecast Evaluation**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.5.0-alpha`
-- **Next Phase**: Phase 5 — Forecast Evaluation
+- **Version**: `0.6.0-alpha`
+- **Next Phase**: Phase 6 — Explainability Agent
 
 ---
 
@@ -129,14 +129,39 @@ This document serves as the single source of truth for current project progress,
 - [x] **Automated Testing Suite**:
   - 79 tests passing (18 new Phase 4 unit tests across models, agent competition, API, and leakage prevention).
 
+### Phase 5 — Forecast Evaluation
+- [x] **Formal Evaluation Module (`backend/app/evaluation/`)**:
+  - `metrics.py`: Deterministic MAE, RMSE, and zero-safe MAPE with explicit division-by-zero protection.
+  - `evaluator.py`: `FormalForecastEvaluator` assessing any `BaseForecastModel` on the holdout test set with horizon validation.
+  - `benchmark.py`: `ForecastingBenchmarkEngine` coordinating multi-model benchmark across Prophet, LightGBM, and PyTorch LSTM.
+  - `schemas.py`: Pydantic contracts re-exporting `BenchmarkResult`, `ModelTestEvaluation`, `EvaluationRequest`.
+- [x] **Zero-Target Handling Strategy**:
+  - Defensible, transparent exclusion of zero actual observations from MAPE (`|y_i| <= 1e-7`) with explicit tracking in `zero_target_count`.
+- [x] **Strict Model Selection Invariant**:
+  - Holdout test set is NEVER used for model selection or tuning (`test_set_used_for_selection = False`).
+  - Phase 4 validation winner (`lightgbm`) is independently labeled; test metrics are reported purely for academic evidence.
+- [x] **Synthetic 50K Benchmark Execution**:
+  - Evaluated on 14-day holdout test set (2024-08-01 to 2024-08-14, 37 total holdout days):
+    - LightGBM: Test MAE 1.7051, RMSE 2.7491, MAPE 7.40% (Phase 4 Validation Winner: Val MAE 1.8736)
+    - Prophet: Test MAE 2.3206, RMSE 2.7221, MAPE 11.12% (Val MAE 2.3711)
+    - PyTorch LSTM: Test MAE 2.6528, RMSE 3.4797, MAPE 12.66% (Val MAE 1.9655)
+- [x] **REST API Endpoints (`backend/app/api/v1/endpoints/evaluation.py`)**:
+  - `POST /api/v1/evaluation/run`: Executes test-set benchmark evaluation.
+  - `GET /api/v1/evaluation/health`: Subsystem health and dependency verification.
+  - `GET /api/v1/evaluation/sample`: Fast sample demonstration benchmark.
+  - `GET /api/v1/evaluation/metrics`: Quantitative metric formulas and invariant declarations.
+- [x] **Minimal Development Frontend Component (`EvaluationPanel.tsx`)**:
+  - Series/horizon controls, candidate toggles, formal benchmark comparison table, and actual vs prediction point comparisons.
+- [x] **Automated Testing Suite**:
+  - 103 tests passing (24 new Phase 5 unit tests across metrics, evaluator, benchmark engine, API, and invariants). Zero regressions.
+
 ---
 
 ## 3. Pending Phases
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 5** | Forecast Evaluation | **Next Recommended Phase** |
-| **Phase 6** | Explainability Agent | Pending |
+| **Phase 6** | Explainability Agent (SHAP / Interpretability) | **Next Recommended Phase** |
 | **Phase 7** | Decision Intelligence Agent | Pending |
 | **Phase 8** | Multi-Agent Orchestration | Pending |
 | **Phase 9** | Feedback & Self-Correction Loop | Pending |
@@ -164,13 +189,15 @@ This document serves as the single source of truth for current project progress,
 | **ADR-012** | Strict Validation vs Holdout Test Separation | Accepted | Phase 4 uses the validation partition exclusively for internal model ranking and selection. The holdout test partition is strictly excluded and reserved for formal benchmark evaluation in Phase 5. |
 | **ADR-013** | Zero Target Leakage in Multi-Step Recursive Forecasting | Accepted | For future multi-step horizons, LightGBM and LSTM compute future lags recursively from the model's own prior predictions, strictly preventing lookahead into actual future targets. |
 | **ADR-014** | PyTorch for Local Deep-Learning Stack | Accepted | On Windows / Python 3.14 environments where TensorFlow wheel distributions are unavailable, PyTorch provides native sequence modeling, deterministic seeding, and high performance. |
+| **ADR-015** | Defensible Zero-Target Exclusion for Evaluation MAPE | Accepted | When ground-truth targets are zero, division by zero is mathematically undefined. GlassBox-BI excludes zeros from MAPE calculation, reporting the exact excluded count in `zero_target_count` for full auditability. |
+| **ADR-016** | Strict Model Selection and Test Benchmark Decoupling | Accepted | Model selection is conducted exclusively in Phase 4 via Validation MAE. Test set evaluation in Phase 5 is reported independently as scientific benchmark evidence and never alters model selection. |
 
 ---
 
 ## 5. Known Boundaries & Limitations
 
-- **Validation vs. Test Boundary**: Phase 4 validation metrics are utilized strictly for internal candidate model ranking and selection. Formal benchmark evaluation and test set metrics belong exclusively to Phase 5.
-- **Explainability & SHAP Deferral**: While `ForecastResult` retains model metadata and feature names for auditability, SHAP/LIME explainability is strictly deferred to Phase 6.
+- **Validation vs. Test Boundary**: Phase 4 validation metrics are utilized strictly for internal candidate model ranking and selection. Phase 5 evaluates models on the untouched test partition independently.
+- **Explainability & SHAP Deferral**: While `BenchmarkResult` preserves model performance and metadata, SHAP/LIME explainability is strictly deferred to Phase 6.
 - **Decision Intelligence Deferral**: Prescriptive business recommendations, inventory simulations, and risk scorings are strictly deferred to Phase 7.
 - **Multi-Agent Orchestration**: Autonomous multi-agent coordination (LangGraph/LangChain) is deferred to Phase 8.
 - **Development Benchmark Dataset**: The 50,000-row synthetic retail dataset is the primary development benchmark. Real benchmark datasets (Walmart, Rossmann) will be integrated in subsequent phases without modifying the canonical data contract.

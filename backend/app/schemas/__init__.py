@@ -51,6 +51,14 @@ from backend.app.schemas.forecasting import (
     ModelSelectionResult,
     ModelMetadata,
 )
+from backend.app.schemas.evaluation import (
+    EvaluationMetricType,
+    EvaluationMetricResult,
+    EvaluationPoint,
+    ModelTestEvaluation,
+    EvaluationRequest,
+    BenchmarkResult,
+)
 
 __all__ = [
     "HealthResponse",
@@ -93,6 +101,12 @@ __all__ = [
     "ModelEvaluationScore",
     "ModelSelectionResult",
     "ModelMetadata",
+    "EvaluationMetricType",
+    "EvaluationMetricResult",
+    "EvaluationPoint",
+    "ModelTestEvaluation",
+    "EvaluationRequest",
+    "BenchmarkResult",
 ]
 
 

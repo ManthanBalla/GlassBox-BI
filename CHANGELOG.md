@@ -5,6 +5,36 @@ All notable changes to the **GlassBox-BI** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-alpha] - Phase 5: Formal Forecasting Evaluation (2026-09-15)
+
+### Added
+- **Formal Evaluation Module (`backend/app/evaluation/`)**:
+  - `metrics.py`: Exact deterministic implementations of MAE, RMSE, and zero-safe MAPE with division-by-zero protection.
+  - `evaluator.py`: `FormalForecastEvaluator` assessing any `BaseForecastModel` against the holdout test partition with strict horizon bounds checking.
+  - `benchmark.py`: `ForecastingBenchmarkEngine` coordinating multi-model benchmark evaluation across Prophet, LightGBM, and PyTorch LSTM.
+  - `schemas.py` & `backend/app/schemas/evaluation.py`: Structured Pydantic contracts for `EvaluationMetricResult`, `EvaluationPoint`, `ModelTestEvaluation`, `EvaluationRequest`, and `BenchmarkResult`.
+- **Zero-Target Handling Strategy**:
+  - Transparently excludes zero actual target observations from MAPE calculation (`|y_i| <= 1e-7`) with explicit tracking in `zero_target_count`.
+- **Strict Model Selection Separation Invariant**:
+  - Holdout test set is NEVER used for model selection, hyperparameter tuning, or fitting (`test_set_used_for_selection = False`).
+  - Phase 4 validation winner (`lightgbm`) is independently preserved; test metrics are reported purely for academic evidence.
+- **REST API Endpoints (`backend/app/api/v1/endpoints/evaluation.py`)**:
+  - `POST /api/v1/evaluation/run`: Runs test-set benchmark evaluation on specified series and horizon.
+  - `GET /api/v1/evaluation/health`: Subsystem health and dependency verification.
+  - `GET /api/v1/evaluation/sample`: Fast sample demonstration benchmark on synthetic retail dataset.
+  - `GET /api/v1/evaluation/metrics`: Quantitative metric mathematical formulas and invariant declarations.
+- **Frontend Verification Component (`frontend/src/components/EvaluationPanel.tsx`)**:
+  - Minimal development verification panel displaying test benchmarks, Phase 4 validation winner badge, and test predictions vs actuals.
+- **Holdout Test Benchmark Verification on Synthetic 50K Retail Dataset**:
+  - `scripts/verify_phase5_benchmark.py`: Evaluated 14-day holdout test set (2024-08-01 to 2024-08-14, 37 total holdout days):
+    - LightGBM: Test MAE = 1.7051, Test RMSE = 2.7491, Test MAPE = 7.40% (Phase 4 Validation Winner: Val MAE = 1.8736)
+    - Prophet: Test MAE = 2.3206, Test RMSE = 2.7221, Test MAPE = 11.12% (Val MAE = 2.3711)
+    - PyTorch LSTM: Test MAE = 2.6528, Test RMSE = 3.4797, Test MAPE = 12.66% (Val MAE = 1.9655)
+  - Independent manual recalculation of MAE, RMSE, and MAPE from raw predictions strictly confirmed exact match to 4 decimal places.
+- **Comprehensive Automated Test Suite**:
+  - Added 24 new Phase 5 unit tests across `test_evaluation_metrics.py`, `test_forecast_evaluator.py`, `test_benchmark_engine.py`, and `test_evaluation_api.py`.
+  - Expanded total test suite from 79 to **103 passing tests** (100% pass rate, 0 regressions).
+
 ---
 
 ## [0.5.0-alpha] - Phase 4: Forecasting Agent (2026-09-13)

@@ -2,7 +2,7 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-4%20%7C%20Forecasting%20Agent-green.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-5%20%7C%20Forecast%20Evaluation-green.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
@@ -58,7 +58,12 @@ GlassBox-BI/
 │   │   │       ├── feature_engineering.py # Calendar, strictly historical lags & rolling features
 │   │   │       ├── splitting.py    # Walk-forward train/val/test splitting utility
 │   │   │       └── audit.py        # Transparent transformation audit tracker
-│   │   ├── forecasting/            # Forecasting models boundary (Phase 4)
+│   │   ├── forecasting/            # Forecasting models & agent (Phase 4)
+│   │   ├── evaluation/             # Formal forecasting evaluation module (Phase 5)
+│   │   │   ├── metrics.py          # Deterministic MAE, RMSE, zero-safe MAPE
+│   │   │   ├── evaluator.py        # ModelTestEvaluator for holdout test partitions
+│   │   │   ├── benchmark.py        # ForecastingBenchmarkEngine (Prophet vs LightGBM vs LSTM)
+│   │   │   └── schemas.py          # Evaluation contracts re-export
 │   │   ├── explainability/         # XAI & SHAP attribution boundary (Phase 6)
 │   │   ├── decision_intelligence/  # Scenario simulation boundary (Phase 7)
 │   │   ├── agents/                 # Autonomous agents boundary (Phase 3+)
@@ -76,8 +81,9 @@ GlassBox-BI/
 │       └── retail_processed_sample.csv # 150-row verified processed sample
 ├── scripts/                        # Utility & data generation scripts
 │   ├── generate_synthetic_retail_data.py # Deterministic 50k dataset generator
-│   └── process_retail_dataset.py   # Full pipeline execution on 50k dataset
-├── tests/                          # Automated test suites (61 unit tests)
+│   ├── process_retail_dataset.py   # Full pipeline execution on 50k dataset
+│   └── verify_phase5_benchmark.py  # Holdout test set formal benchmark verification
+├── tests/                          # Automated test suites (103 unit tests, 0 regressions)
 │   └── unit/
 ├── docs/                           # Architecture and roadmap documentation
 │   ├── architecture.md             # System architecture blueprint
@@ -127,8 +133,8 @@ flowchart TD
     end
 
     FA --> FCResult["Machine-Readable ForecastResult"]
-    FCResult --> P5["Phase 5 Forecast Evaluation (Future)"]
-    FCResult --> P6["Phase 6 Explainability Agent (Future)"]
+    FCResult --> P5["Phase 5 Formal Forecast Evaluation (Completed)"]
+    P5 --> P6["Phase 6 Explainability Agent (Next Phase)"]
 ```
 
 ---
@@ -148,6 +154,9 @@ python scripts/generate_synthetic_retail_data.py --rows 50000 --seed 42
 
 # 2. Run Data Processing Agent pipeline (cleaning, imputation, lags, rolling features)
 python scripts/process_retail_dataset.py
+
+# 3. Run Phase 5 Formal Holdout Test Benchmark verification
+python scripts/verify_phase5_benchmark.py
 ```
 Outputs:
 - Full 50,000-row raw dataset: `data/raw/synthetic/retail_50k.csv` (excluded from Git)
@@ -164,7 +173,7 @@ python -m venv .venv
 # Install dependencies
 pip install -r backend/requirements.txt
 
-# Run automated tests (79 unit tests across all phases)
+# Run automated tests (103 unit tests across all phases, 0 regressions)
 pytest tests/
 
 # Launch FastAPI development server
@@ -180,6 +189,10 @@ Key API endpoints:
 - Forecasting Default Config: `http://127.0.0.1:8000/api/v1/forecast/config`
 - Fast Sample Forecast: `http://127.0.0.1:8000/api/v1/forecast/sample?model=lightgbm&horizon=7`
 - Run Forecasting Agent: `POST http://127.0.0.1:8000/api/v1/forecast/run`
+- **Evaluation Health Check**: `http://127.0.0.1:8000/api/v1/evaluation/health`
+- **Evaluation Metrics Documentation**: `http://127.0.0.1:8000/api/v1/evaluation/metrics`
+- **Fast Demonstration Benchmark**: `http://127.0.0.1:8000/api/v1/evaluation/sample?horizon=14&models=prophet,lightgbm,lstm`
+- **Run Formal Test Benchmark**: `POST http://127.0.0.1:8000/api/v1/evaluation/run`
 - Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
 
 ### 4. Frontend Setup & Run
@@ -188,7 +201,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell and the Phase 4 live forecasting panel.
+Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell, Phase 4 forecasting panel, and Phase 5 holdout test-set benchmark panel.
 
 ---
 
@@ -201,8 +214,8 @@ Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI inte
 | **Phase 2** | **Dataset Ingestion & Generic Data Foundation** | ✅ Completed |
 | **Phase 3** | **Data Processing Agent** | ✅ Completed |
 | **Phase 4** | **Forecasting Agent** | ✅ Completed |
-| **Phase 5** | **Forecast Evaluation** | ⏳ Next |
-| **Phase 6** | **Explainability Agent** | ⏳ Pending |
+| **Phase 5** | **Forecast Evaluation** | ✅ Completed |
+| **Phase 6** | **Explainability Agent** | ⏳ Next |
 | **Phase 7** | **Decision Intelligence Agent** | ⏳ Pending |
 | **Phase 8** | **Multi-Agent Orchestration** | ⏳ Pending |
 | **Phase 9** | **Feedback & Self-Correction Loop** | ⏳ Pending |
