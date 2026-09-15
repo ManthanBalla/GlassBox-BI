@@ -131,6 +131,31 @@ __all__ = [
     "FormalExplanationResult",
     "MethodCompatibilityInfo",
     "ExplainabilityConfigSchema",
+    "DecisionPriority",
+    "BusinessActionCategory",
+    "BusinessContext",
+    "TradeOff",
+    "RecommendationItem",
+    "DecisionAuditRecord",
+    "DecisionResult",
+    "DecisionRequest",
+    "ScenarioRequest",
+    "ScenarioResult",
+    "DecisionConfigSchema",
 ]
+
+from backend.app.schemas.decisions import (
+    DecisionPriority,
+    BusinessActionCategory,
+    BusinessContext,
+    TradeOff,
+    RecommendationItem,
+    DecisionAuditRecord,
+    DecisionResult,
+    DecisionRequest,
+    ScenarioRequest,
+    ScenarioResult,
+    DecisionConfigSchema,
+)
 
 

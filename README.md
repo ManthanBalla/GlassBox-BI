@@ -2,7 +2,7 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-6%20%7C%20Explainability%20Agent-purple.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-7%20%7C%20Decision%20Intelligence%20Agent-emerald.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
@@ -21,10 +21,11 @@ GlassBox-BI is designed from the ground up as a **universal, organization-agnost
 - Cross-industry tabular and time-series business data
 
 > [!IMPORTANT]
-> **Core Forecasting Principles**:
-> - *GlassBox-BI does not assume a single forecasting algorithm is universally optimal. The Forecasting Agent compares candidate models for the selected dataset/series and configuration.*
-> - *Phase 4 uses validation data for internal model selection. The holdout test set is strictly reserved for formal evaluation in Phase 5.*
-> - *The synthetic dataset is a development/testing benchmark. Real benchmark datasets such as Walmart and Rossmann will be integrated later without changing the core canonical data contract or model interfaces.*
+> **Core Decision & Forecasting Principles**:
+> - *The Phase 7 Decision Intelligence Agent is a deterministic recommendation engine. It does not autonomously execute business actions.*
+> - *Strict separation between Forecast Uncertainty (prediction interval spread) and Decision Confidence (calibrated recommendation trust score).*
+> - *Zero Value Fabrication: Missing business context fields are never imputed or assumed; they automatically downgrade confidence, emit warnings, and trigger human supervisory review.*
+> - *Benchmarked primarily on retail demand forecasting; architecturally extensible to SME cash-flow decision support.*
 
 ---
 
@@ -35,73 +36,39 @@ GlassBox-BI/
 ├── backend/                        # FastAPI Backend Application
 │   ├── app/
 │   │   ├── api/                    # Versioned REST APIs (/api/v1/)
-│   │   │   └── v1/endpoints/       # Health, contracts, dataset ingestion, and processing APIs
+│   │   │   └── v1/endpoints/       # Health, contracts, processing, forecasting, evaluation, explainability, decisions
 │   │   ├── core/                   # Config, settings, logging & CORS
 │   │   ├── schemas/                # Canonical data contracts & Pydantic schemas
 │   │   │   ├── data_contract.py    # BusinessTimeSeriesRecord & ColumnMapping
 │   │   │   ├── ingestion.py        # Validation, QualityScore, & IngestionResult
-│   │   │   └── processing.py       # DataProcessingConfig, Audit, Split, & Result
+│   │   │   ├── processing.py       # DataProcessingConfig, Audit, Split, & Result
+│   │   │   ├── forecasting.py      # ForecastPoint, ForecastRequest, ForecastResult
+│   │   │   ├── evaluation.py       # BenchmarkResult & ModelTestEvaluation
+│   │   │   ├── explainability.py   # ExplanationResult, FeatureContribution, Fidelity
+│   │   │   └── decisions.py        # BusinessContext, RecommendationItem, DecisionResult
 │   │   ├── data_processing/        # Ingestion, validation, profiling, and processing agent
-│   │   │   ├── ingestion.py        # Source-agnostic CSV ingestion service
-│   │   │   ├── validation.py       # 7-dimensional data validation engine
-│   │   │   ├── leakage.py          # Temporal lookahead leakage detector
-│   │   │   ├── quality.py          # Explainable 0-100 data quality scorer
-│   │   │   ├── profiling.py        # Statistical dataset profiling service
-│   │   │   └── processing/         # Data Processing Agent pipeline
-│   │   │       ├── processor.py    # GenericBusinessDataProcessor coordinator
-│   │   │       ├── cleaning.py     # DataCleaner & type normalization
-│   │   │       ├── duplicates.py   # Business-key duplicate handler
-│   │   │       ├── invalid_values.py # Business boundary corrections
-│   │   │       ├── missing_values.py # Temporal-aware imputation (zero target leakage)
-│   │   │       ├── outliers.py     # Group-aware IQR & Z-Score outlier detector (flag by default)
-│   │   │       ├── time_series.py  # Chronological ordering & gap analysis
-│   │   │       ├── feature_engineering.py # Calendar, strictly historical lags & rolling features
-│   │   │       ├── splitting.py    # Walk-forward train/val/test splitting utility
-│   │   │       └── audit.py        # Transparent transformation audit tracker
 │   │   ├── forecasting/            # Forecasting models & agent (Phase 4)
 │   │   ├── evaluation/             # Formal forecasting evaluation module (Phase 5)
-│   │   │   ├── metrics.py          # Deterministic MAE, RMSE, zero-safe MAPE
-│   │   │   ├── evaluator.py        # ModelTestEvaluator for holdout test partitions
-│   │   │   ├── benchmark.py        # ForecastingBenchmarkEngine (Prophet vs LightGBM vs LSTM)
-│   │   │   └── schemas.py          # Evaluation contracts re-export
 │   │   ├── explainability/         # XAI & SHAP/LIME attribution module (Phase 6)
-│   │   │   ├── base.py             # BaseExplainer abstract interface
-│   │   │   ├── shap_explainer.py   # TreeExplainer (LGBM) & sequence attribution (LSTM)
-│   │   │   ├── lime_explainer.py   # LimeTabularExplainer local linear surrogates
-│   │   │   ├── prophet_explainer.py # Component-based additive decomposition
-│   │   │   ├── feature_adapter.py  # Feature alignment & zero-leakage training sampling
-│   │   │   ├── validation.py       # Pre-explanation guards & compatibility matrix
-│   │   │   ├── agent.py            # ExplainabilityAgent coordinator
-│   │   │   └── schemas.py          # Explainability schemas & contracts
-│   │   ├── decision_intelligence/  # Scenario simulation boundary (Phase 7)
-│   │   ├── agents/                 # Autonomous agents boundary (Phase 3+)
+│   │   ├── decision_intelligence/  # Deterministic Prescriptive Decision Agent (Phase 7)
+│   │   │   ├── base.py             # BaseDecisionEngine abstract interface
+│   │   │   ├── rules.py            # RetailDecisionRuleEngine (8 deterministic rules)
+│   │   │   ├── scoring.py          # DecisionScorer (confidence calibration & recommendation score)
+│   │   │   ├── validation.py       # DecisionValidator (zero-fabrication & safety contracts)
+│   │   │   └── agent.py            # DecisionIntelligenceAgent coordinator
 │   │   ├── orchestration/          # Multi-agent orchestrator boundary (Phase 8)
 │   │   └── main.py                 # Application entrypoint & health checks
-│   └── requirements.txt            # Backend dependencies (FastAPI, LightGBM, Prophet, Torch, SHAP, LIME)
+│   └── requirements.txt            # Backend dependencies
 ├── frontend/                       # Next.js 16 + TypeScript Dashboard
+│   └── src/components/             # ForecastingPanel, EvaluationPanel, ExplainabilityPanel, DecisionIntelligencePanel
 ├── data/                           # Data directory tree
-│   ├── raw/                        # Local raw datasets (Git ignored)
-│   │   └── synthetic/              # 50,000-row synthetic retail dataset (local only)
-│   ├── processed/                  # Preprocessed datasets (Git ignored)
-│   │   └── synthetic/              # 50,000-row processed retail dataset (local only)
-│   └── sample/                     # Lightweight sample datasets (Git tracked)
-│       ├── retail_sample.csv       # 150-row verified raw sample
-│       └── retail_processed_sample.csv # 150-row verified processed sample
-├── scripts/                        # Utility & data generation scripts
-│   ├── generate_synthetic_retail_data.py # Deterministic 50k dataset generator
-│   ├── process_retail_dataset.py   # Full pipeline execution on 50k dataset
+├── scripts/                        # Utility & verification scripts
 │   ├── verify_phase5_benchmark.py  # Holdout test set formal benchmark verification
-│   └── verify_phase6_explainability.py # Live verification for SHAP, LIME, and Prophet
-├── tests/                          # Automated test suites (134 unit tests, 0 regressions)
+│   ├── verify_phase6_explainability.py # Live verification for SHAP, LIME, and Prophet
+│   └── verify_phase7_decisions.py  # Live verification for Decision Intelligence
+├── tests/                          # Automated test suites (158 unit tests, 0 regressions)
 │   └── unit/
-├── docs/                           # Architecture and roadmap documentation
-│   ├── architecture.md             # System architecture blueprint
-│   └── development_phases.md       # 13-Phase development roadmap
-├── .env.example                    # Global environment variables template
-├── .gitignore                      # Git ignore rules (raw/processed data excluded)
-├── CHANGELOG.md                    # Project change history
-├── PROJECT_STATE.md                # Single source of truth for project state
-└── README.md                       # Project documentation entry point
+└── docs/                           # Architecture and roadmap documentation
 ```
 
 ---

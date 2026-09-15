@@ -6,11 +6,11 @@ This document serves as the single source of truth for current project progress,
 
 ## 1. Current Phase
 
-**Phase 6 — Explainability Agent**
+**Phase 7 — Decision Intelligence Agent**
 - **Status**: Completed
 - **Phase Date**: September 2026
-- **Version**: `0.7.0-alpha`
-- **Next Phase**: Phase 7 — Decision Intelligence Agent
+- **Version**: `0.8.0-alpha`
+- **Next Phase**: Phase 8 — Multi-Agent Orchestration & Workflow Engine
 
 ---
 
@@ -185,14 +185,46 @@ This document serves as the single source of truth for current project progress,
 - [x] **Automated Testing Suite**:
   - **134 tests passing** (31 new Phase 6 unit tests across base contracts, SHAP, LIME, Prophet, model immutability regression, and APIs). Zero failures, zero regressions.
 
+### Phase 7 — Decision Intelligence Agent
+- [x] **Deterministic Prescriptive Architecture (`backend/app/decision_intelligence/`)**:
+  - `base.py`: Model-independent `BaseDecisionEngine` defining the prescriptive decision contract.
+  - `schemas.py`: Pydantic schemas for `BusinessContext`, `DecisionPriority`, `BusinessActionCategory`, `TradeOff`, `RecommendationItem`, `DecisionResult`, `ScenarioRequest`, `ScenarioResult`, `DecisionAuditRecord`.
+  - `rules.py`: Deterministic suite of 8 retail business rules (`RetailDecisionRuleEngine`):
+    - `RULE_1_HIGH_DEMAND_LOW_INVENTORY`: High priority replenishment scale-up.
+    - `RULE_2_HIGH_STOCKOUT_CRITICAL`: Critical emergency replenishment when days-of-supply < lead time.
+    - `RULE_3_LOW_DEMAND_HIGH_INVENTORY`: Order curtailment and clearance planning when inventory is excess.
+    - `RULE_4_DEMAND_INCREASE_PROMOTION`: Promotion sustaining and inventory burn rate monitoring.
+    - `RULE_5_PRICE_DRIVEN_DEMAND_CHANGE`: Price review recommendation with mandatory human sign-off.
+    - `RULE_6_HIGH_FORECAST_UNCERTAINTY`: Conservative buffering and confidence downgrade when intervals are wide.
+    - `RULE_7_LOW_EXPLANATION_FIDELITY`: Confidence downgrade and human review alert when XAI fidelity is low.
+    - `RULE_MISSING_INVENTORY_PLANNING`: Strict zero-fabrication safety rule directing review when context is incomplete.
+  - `scoring.py`: Methodological calibration separating Forecast Uncertainty (relative interval spread) from Decision Confidence (calibrated reliability metric), plus rule-based Recommendation Score (0-100).
+  - `validation.py`: Strict contract validation enforcing non-empty rationales, traceable evidence lists, valid ranges, and mandatory human review flags.
+  - `agent.py`: `DecisionIntelligenceAgent` orchestrating decision evaluation, scenario simulations, and audit logging.
+- [x] **Lightweight Deterministic What-If Scenario Analysis**:
+  - `run_scenario()` evaluates operational shocks (inventory shifts, promo toggles, price elasticity $\epsilon = -1.5$) without retraining forecasting models.
+- [x] **REST API Endpoints (`backend/app/api/v1/endpoints/decisions.py`)**:
+  - `GET /api/v1/decisions/health`: Subsystem health, engine parameters, and supported categories.
+  - `GET /api/v1/decisions/rules`: Rule catalog with trigger criteria and default priorities.
+  - `GET /api/v1/decisions/config`: Default thresholds, coverage multipliers, and holding cost rates.
+  - `GET /api/v1/decisions/sample`: Instantaneous sample decision for fast UI evaluation.
+  - `POST /api/v1/decisions/run`: Full decision evaluation from forecast, XAI, and context.
+  - `POST /api/v1/decisions/scenario`: Interactive what-if scenario simulation.
+- [x] **Minimal Development Frontend Component (`DecisionIntelligencePanel.tsx`)**:
+  - Operational context inputs, action presets, primary recommendation banner with priority badges, confidence/score meters, traceable evidence list, explicit trade-offs card, and interactive what-if scenario simulator.
+- [x] **Automated Testing Suite**:
+  - **158 tests passing** (24 new Phase 7 unit tests covering schemas, all 8 retail rules, scoring, agent, scenarios, and REST APIs). Zero failures, zero regressions.
+- [x] **Architectural Principles & Safety**:
+  - "The Phase 7 Decision Intelligence Agent is a deterministic recommendation engine. It does not autonomously execute business actions."
+  - Benchmarked for retail demand forecasting; architecturally extensible to SME cash-flow management. Zero LLM dependency.
+
 ---
 
 ## 3. Pending Phases
 
 | Phase | Description | Status |
 |---|---|---|
-| **Phase 7** | Decision Intelligence Agent | **Next Recommended Phase** |
-| **Phase 8** | Multi-Agent Orchestration | Pending |
+| **Phase 8** | Multi-Agent Orchestration | **Next Recommended Phase** |
 | **Phase 9** | Feedback & Self-Correction Loop | Pending |
 | **Phase 10** | Dashboard | Pending |
 | **Phase 11** | MLflow, Testing & Deployment | Pending |
@@ -284,6 +316,10 @@ python -m unittest discover -s tests/unit
   - `tests/unit/test_api_v1.py`: 4 tests passing (system health, API v1 health, contract specs discovery, CORS)
   - `tests/unit/test_schemas.py`: 5 tests passing (Pydantic contract validation)
   - `tests/unit/test_foundation.py`: 3 tests passing (directory structure and package importability)
-  - **Total**: **61/61 passing** (100% pass rate in 1.88s)
+  - `tests/unit/test_forecasting_*.py`: 18 tests passing (candidate models, hyperparameter tuning, leakage safety)
+  - `tests/unit/test_evaluation_*.py`: 24 tests passing (formal evaluation metrics, holdout benchmark engine, evaluation APIs)
+  - `tests/unit/test_explainability_*.py`: 31 tests passing (SHAP, LIME, Prophet component decomposition, model immutability)
+  - `tests/unit/test_decision_*.py`: 24 tests passing (deterministic retail rules, scoring, scenario simulations, decision APIs)
+  - **Total**: **158/158 passing** (100% pass rate across Phase 0 through Phase 7)
 - **Frontend Build**: `npm run build` — **Passing** (0 TypeScript errors)
 

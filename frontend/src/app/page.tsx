@@ -9,6 +9,7 @@ import ContractsViewer from "@/components/ContractsViewer";
 import ForecastingPanel from "@/components/ForecastingPanel";
 import EvaluationPanel from "@/components/EvaluationPanel";
 import ExplainabilityPanel from "@/components/ExplainabilityPanel";
+import DecisionIntelligencePanel from "@/components/DecisionIntelligencePanel";
 
 export default function Home() {
   return (
@@ -99,6 +100,9 @@ export default function Home() {
 
           {/* Phase 6 Development Verification: Explainability Agent (SHAP / LIME / Component) */}
           <ExplainabilityPanel />
+
+          {/* Phase 7 Development Verification: Decision Intelligence Agent */}
+          <DecisionIntelligencePanel />
 
           {/* Development Notice */}
           <div className="text-center py-6 border-t border-slate-900 text-xs text-slate-400">

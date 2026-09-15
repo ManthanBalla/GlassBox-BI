@@ -5,6 +5,44 @@ All notable changes to the **GlassBox-BI** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0-alpha] - Phase 7: Decision Intelligence Agent (2026-09-15)
+
+### Added
+- **Deterministic Decision Intelligence Module (`backend/app/decision_intelligence/`)**:
+  - `base.py`: Model-independent `BaseDecisionEngine` abstract base class defining prescriptive contracts.
+  - `schemas.py` & `backend/app/schemas/decisions.py`: Type-safe Pydantic contracts for `BusinessContext`, `DecisionPriority`, `BusinessActionCategory`, `TradeOff`, `RecommendationItem`, `DecisionResult`, `ScenarioRequest`, `ScenarioResult`, `DecisionAuditRecord`, `DecisionConfigSchema`.
+  - `rules.py`: Deterministic suite of 8 retail decision rules (`RetailDecisionRuleEngine`):
+    - `RULE_1_HIGH_DEMAND_LOW_INVENTORY`: High priority replenishment scale-up.
+    - `RULE_2_HIGH_STOCKOUT_CRITICAL`: Critical emergency replenishment when days-of-supply < lead time.
+    - `RULE_3_LOW_DEMAND_HIGH_INVENTORY`: Order curtailment and clearance planning when inventory is excess.
+    - `RULE_4_DEMAND_INCREASE_PROMOTION`: Promotion sustaining and inventory burn rate monitoring.
+    - `RULE_5_PRICE_DRIVEN_DEMAND_CHANGE`: Price review recommendation with mandatory human review.
+    - `RULE_6_HIGH_FORECAST_UNCERTAINTY`: Conservative buffering and confidence downgrade when intervals are wide.
+    - `RULE_7_LOW_EXPLANATION_FIDELITY`: Confidence downgrade and human review alert when XAI fidelity is low.
+    - `RULE_MISSING_INVENTORY_PLANNING`: Strict zero-fabrication safety rule directing review when context is incomplete.
+  - `scoring.py`: Methodological calibration strictly separating Forecast Uncertainty (prediction interval spread) from Decision Confidence (calibrated reliability metric factoring validation metrics, uncertainty penalties, fidelity penalties, and context completeness). Transparent rule-based Recommendation Score (0-100).
+  - `validation.py`: `DecisionValidator` enforcing contract invariants, valid priority/score ranges, and mandatory human review flags.
+  - `agent.py`: `DecisionIntelligenceAgent` orchestrating context evaluation, rule evaluation, scenario simulations, and audit trail generation.
+- **Lightweight Deterministic What-If Scenario Analysis**:
+  - `run_scenario()` evaluates operational shocks (inventory shifts, promo toggles, price elasticity $\epsilon = -1.5$) without model retraining.
+- **REST API Endpoints (`backend/app/api/v1/endpoints/decisions.py`)**:
+  - `GET /api/v1/decisions/health`: Subsystem health, engine parameters, and supported categories.
+  - `GET /api/v1/decisions/rules`: Rule catalog with trigger criteria and default priorities.
+  - `GET /api/v1/decisions/config`: Default thresholds, coverage multipliers, and holding cost rates.
+  - `GET /api/v1/decisions/sample`: Instantaneous sample decision for fast UI evaluation.
+  - `POST /api/v1/decisions/run`: Full decision evaluation from forecast, XAI, and context.
+  - `POST /api/v1/decisions/scenario`: Interactive what-if scenario simulation.
+- **Minimal Development Frontend Component (`frontend/src/components/DecisionIntelligencePanel.tsx`)**:
+  - Operational context inputs, action presets, primary recommendation banner with priority badges, confidence/score meters, traceable evidence list, explicit trade-offs card, and interactive what-if scenario simulator.
+- **Automated Testing Suite**:
+  - Added 24 new Phase 7 unit tests across `test_decision_schemas.py`, `test_decision_rules.py` (covering all 8 mandatory test cases), `test_decision_scoring.py`, `test_decision_agent.py`, and `test_decision_api.py`.
+  - Expanded total test suite from 134 to **158 passing tests** (100% pass rate, 0 regressions).
+- **Core Governance Reiteration**:
+  - "The Phase 7 Decision Intelligence Agent is a deterministic recommendation engine. It does not autonomously execute business actions."
+  - Generic architecture benchmarked for retail demand forecasting and extensible to SME cash-flow management. Zero LLM dependency.
+
+---
+
 ## [0.7.0-alpha] - Phase 6: Explainability Agent (2026-09-15)
 
 ### Added
