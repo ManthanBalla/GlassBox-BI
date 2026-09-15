@@ -1,9 +1,40 @@
-"""Orchestration Module.
+"""Multi-Agent Orchestration Package for GlassBox-BI (Phase 8).
 
-Architectural Responsibility:
-- Workflow state machines and execution graphs (e.g., LangGraph / state orchestrator)
-- Sequential and parallel agent pipeline coordination
-- Human-in-the-loop checkpoints and self-correction/feedback governance
-
-Note: Orchestration workflows and feedback loops will be implemented in future phases.
+Coordinates Phase 3 through Phase 7 into a deterministic, auditable pipeline.
 """
+
+from backend.app.schemas.orchestration import (
+    PipelineStage,
+    WorkflowStatus,
+    StageStatus,
+    StageExecutionResult,
+    OrchestrationRequest,
+    OrchestrationAuditRecord,
+    OrchestrationResult,
+    OrchestrationState,
+)
+from backend.app.orchestration.base import BaseOrchestrator
+from backend.app.orchestration.registry import AgentRegistry
+from backend.app.orchestration.graph import WorkflowGraph
+from backend.app.orchestration.validation import WorkflowValidator
+from backend.app.orchestration.audit import WorkflowAuditTracker
+from backend.app.orchestration.executor import SequentialWorkflowExecutor
+from backend.app.orchestration.agent import MultiAgentOrchestrator
+
+__all__ = [
+    "PipelineStage",
+    "WorkflowStatus",
+    "StageStatus",
+    "StageExecutionResult",
+    "OrchestrationRequest",
+    "OrchestrationAuditRecord",
+    "OrchestrationResult",
+    "OrchestrationState",
+    "BaseOrchestrator",
+    "AgentRegistry",
+    "WorkflowGraph",
+    "WorkflowValidator",
+    "WorkflowAuditTracker",
+    "SequentialWorkflowExecutor",
+    "MultiAgentOrchestrator",
+]

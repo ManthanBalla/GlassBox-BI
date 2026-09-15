@@ -157,5 +157,38 @@ from backend.app.schemas.decisions import (
     ScenarioResult,
     DecisionConfigSchema,
 )
+from backend.app.schemas.orchestration import (
+    PipelineStage,
+    WorkflowStatus,
+    StageStatus,
+    StageExecutionResult,
+    OrchestrationRequest,
+    OrchestrationAuditRecord,
+    OrchestrationResult,
+    OrchestrationState,
+)
+
+__all__ += [
+    "DecisionPriority",
+    "BusinessActionCategory",
+    "BusinessContext",
+    "TradeOff",
+    "RecommendationItem",
+    "DecisionAuditRecord",
+    "DecisionResult",
+    "DecisionRequest",
+    "ScenarioRequest",
+    "ScenarioResult",
+    "DecisionConfigSchema",
+    "PipelineStage",
+    "WorkflowStatus",
+    "StageStatus",
+    "StageExecutionResult",
+    "OrchestrationRequest",
+    "OrchestrationAuditRecord",
+    "OrchestrationResult",
+    "OrchestrationState",
+]
+
 
 

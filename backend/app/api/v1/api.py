@@ -10,6 +10,7 @@ from backend.app.api.v1.endpoints import (
     evaluation,
     explainability,
     decisions,
+    orchestration,
 )
 
 api_router = APIRouter()
@@ -22,3 +23,5 @@ api_router.include_router(forecasting.router, prefix="/forecast", tags=["Forecas
 api_router.include_router(evaluation.router, prefix="/evaluation", tags=["Evaluation"])
 api_router.include_router(explainability.router, prefix="/explainability", tags=["Explainability"])
 api_router.include_router(decisions.router, prefix="/decisions", tags=["Decisions"])
+api_router.include_router(orchestration.router, prefix="/orchestration", tags=["Orchestration"])
+

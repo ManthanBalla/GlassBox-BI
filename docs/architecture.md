@@ -263,15 +263,31 @@ flowchart TD
 - **Prescriptive Insights**: Translates forecast gaps and key drivers into human-readable strategic recommendations.
 - **Risk Quantification**: Confidence bounds and scenario volatility metrics.
 
-### 3.7 Agent Layer & Multi-Agent Orchestration (`backend/app/agents` & `backend/app/orchestration`) (Phase 8+)
-- **Role-Based Agents**:
-  - *Data Processing Agent*: Audits dataset quality and recommends transformations.
-  - *Forecasting Agent*: Selects optimal models, tunes parameters, and validates performance.
-  - *Explainability Agent*: Formulates narrative explanations around feature attributions.
-  - *Decision Intelligence Agent*: Evaluates simulated scenarios and drafts executive decision memos.
-- **Orchestration**: Manages the multi-agent graph, state transitions, human-in-the-loop approvals, and self-correction loops.
+### 3.7 Multi-Agent Orchestration Module (`backend/app/orchestration`) (Phase 8)
+- **Controlled Stateful Pipeline**:
+  - `BaseOrchestrator` & `MultiAgentOrchestrator`: Coordinates the completed Phase 3–7 modules into a deterministic, stateful, auditable end-to-end workflow without replacing agent internals.
+  - `SequentialWorkflowExecutor`: Executes stages strictly in topological order:
+    $$\text{DATA\_PROCESSING} \longrightarrow \text{FORECASTING} \longrightarrow \text{EVALUATION} \longrightarrow \text{EXPLAINABILITY} \longrightarrow \text{DECISION\_INTELLIGENCE}$$
+- **Explicit Agent Registry (`AgentRegistry`)**:
+  - Maps `PipelineStage` enums directly to concrete agent implementations (`GenericBusinessDataProcessor`, `GenericForecastingAgent`, `FormalForecastEvaluator`, `ExplainabilityAgent`, `DecisionIntelligenceAgent`).
+  - Extensible architecture without arbitrary or unsafe dynamic class loading.
+- **Workflow State & Execution Contract**:
+  - `OrchestrationState`: Strongly typed state container tracking `workflow_id`, `status` (`PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `PARTIAL`), `current_stage`, `completed_stages`, `failed_stages`, `skipped_stages`, `stage_results`, `warnings`, `errors`, and `execution_summary`.
+  - `StageExecutionResult`: Independently auditable execution record documenting stage status, start/end timestamps, duration in ms, outputs, warnings, and domain metadata.
+- **Error Isolation & Blocking Failure Policy**:
+  - *Data Processing Failure*: Halts downstream execution immediately. Status: `FAILED`. Downstream stages skipped.
+  - *Forecasting Failure*: Halts downstream execution immediately. Status: `FAILED`. Explainability and decision stages skipped.
+  - *Evaluation Failure*: Recorded as failed; does not fabricate metrics; downstream stages proceed if requested. Status: `PARTIAL`.
+  - *Explainability Failure*: Preserves forecast and evaluation; Decision Intelligence proceeds under explicit missing-explanation policy with confidence penalty and mandatory human review. Status: `PARTIAL`.
+  - *Decision Intelligence Failure*: Preserves all earlier outputs. Status: `PARTIAL`.
+- **Workflow Audit Trail (`audit.py`)**:
+  - Immutable audit records documenting workflow ID, start/end timestamps, stage sequence, stage durations, selected model, horizon, explanation method, recommendation count, and final status.
+- **Strict Phase 8 vs Phase 9 Boundary**:
+  - *Zero Self-Correction*: Phase 8 does NOT implement feedback loops, automatic model retraining, automatic model re-selection, forecast rejection retry, or continuous learning.
+  - *Zero LLM Dependency*: Execution is 100% deterministic Python code.
+  - *"Phase 8 coordinates the existing agents but does not implement feedback-driven self-correction."*
 
-### 3.7 API & Contract Layer (`backend/app/api` & `backend/app/schemas`)
+### 3.8 API & Contract Layer (`backend/app/api` & `backend/app/schemas`)
 - **FastAPI Engine**: Asynchronous ASGI backend handling high-concurrency requests with automatic OpenAPI interactive documentation (`/docs`).
 - **Versioned API Structure**: Endpoints are mounted under `/api/v1/` through a centralized router aggregator (`api_router`).
 - **Pydantic v2 Schema Contracts**: Clean type-safe data transfer objects decoupling the frontend from computational engines:

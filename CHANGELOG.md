@@ -5,6 +5,40 @@ All notable changes to the **GlassBox-BI** project will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0-alpha] - Phase 8: Multi-Agent Orchestration (2026-09-15)
+
+### Added
+- **Multi-Agent Orchestration Module (`backend/app/orchestration/`)**:
+  - `base.py`: Model-independent `BaseOrchestrator` abstract class defining deterministic workflow lifecycle.
+  - `schemas.py` & `backend/app/schemas/orchestration.py`: Strongly-typed Pydantic contracts including `PipelineStage`, `WorkflowStatus`, `StageStatus`, `StageExecutionResult`, `OrchestrationRequest`, `OrchestrationAuditRecord`, `OrchestrationResult`, and `OrchestrationState`.
+  - `registry.py`: `AgentRegistry` providing explicit mapping of `PipelineStage` to agent implementations (`GenericBusinessDataProcessor`, `GenericForecastingAgent`, `FormalForecastEvaluator`, `ExplainabilityAgent`, `DecisionIntelligenceAgent`).
+  - `graph.py`: `WorkflowGraph` defining the canonical sequential pipeline, prerequisite stage dependencies, and blocking failure policies.
+  - `validation.py`: `WorkflowValidator` performing early validation of input paths, horizon, candidate models, and business parameters.
+  - `audit.py`: `WorkflowAuditTracker` creating persistent orchestration-level audit records with complete lineage and timing.
+  - `executor.py`: `SequentialWorkflowExecutor` executing stages sequentially, passing typed data contracts between stages, isolating errors, and assembling unified `OrchestrationResult`.
+  - `agent.py`: `MultiAgentOrchestrator` managing workflow state, coordinating executions, and providing workflow history caching.
+- **Controlled Error Isolation & Blocking Failure Policy**:
+  - `DATA_PROCESSING` or `FORECASTING` failures halt downstream stages immediately (`WorkflowStatus.FAILED`).
+  - `EVALUATION` failure preserves forecast and allows downstream execution without fabricating metrics (`WorkflowStatus.PARTIAL`).
+  - `EXPLAINABILITY` failure preserves forecast and allows decisions with missing explanation warnings, confidence penalties, and mandatory human review (`WorkflowStatus.PARTIAL`).
+  - `DECISION_INTELLIGENCE` failure preserves all earlier stage outputs (`WorkflowStatus.PARTIAL`).
+- **REST API Endpoints (`backend/app/api/v1/endpoints/orchestration.py`)**:
+  - `GET /api/v1/orchestration/health`: Subsystem health and registered stage catalog.
+  - `GET /api/v1/orchestration/stages`: Canonical pipeline stages, dependencies, and blocking failure policies.
+  - `GET /api/v1/orchestration/sample`: Sample pre-configured workflow execution with synthetic retail dataset.
+  - `POST /api/v1/orchestration/run`: End-to-end multi-agent pipeline execution.
+  - `GET /api/v1/orchestration/{workflow_id}`: Workflow state retrieval and stage audit inspection.
+- **Minimal Development Frontend Component (`frontend/src/components/OrchestrationPanel.tsx`)**:
+  - Interactive pipeline run trigger, real-time stage progress timeline with status icons and execution durations, selected model and forecast overview, explanation summary, decision recommendation cards, and full audit drawer.
+- **Automated Testing Suite**:
+  - Added 30 new Phase 8 unit tests across `test_orchestration_schemas.py`, `test_orchestration_registry.py`, `test_orchestration_graph.py`, `test_orchestration_executor.py`, `test_orchestration_error_isolation.py`, and `test_orchestration_api.py`.
+  - Expanded total test suite from 158 to **189 passing tests** (100% pass rate, 0 regressions).
+- **Core Governance Reiteration**:
+  - "Phase 8 coordinates the existing agents but does not implement feedback-driven self-correction."
+  - Zero LLM dependency, zero automatic retraining/reforecasting loops, bitwise deterministic execution.
+
+---
+
 ## [0.8.0-alpha] - Phase 7: Decision Intelligence Agent (2026-09-15)
 
 ### Added

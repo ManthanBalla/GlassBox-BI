@@ -2,7 +2,7 @@
 
 > **Explainable AI (XAI) & Decision Intelligence for Business Forecasting**
 
-[![Current Phase](https://img.shields.io/badge/Phase-7%20%7C%20Decision%20Intelligence%20Agent-emerald.svg)](./PROJECT_STATE.md)
+[![Current Phase](https://img.shields.io/badge/Phase-8%20%7C%20Multi--Agent%20Orchestration-emerald.svg)](./PROJECT_STATE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![Frontend](https://img.shields.io/badge/Next.js-16%20%7C%20TypeScript-black.svg)](https://nextjs.org/)
@@ -21,7 +21,8 @@ GlassBox-BI is designed from the ground up as a **universal, organization-agnost
 - Cross-industry tabular and time-series business data
 
 > [!IMPORTANT]
-> **Core Decision & Forecasting Principles**:
+> **Core Decision, Forecasting & Orchestration Principles**:
+> - *Phase 8 coordinates the existing agents (Phases 3–7) into a stateful, auditable, deterministic workflow without feedback loops or self-correction.*
 > - *The Phase 7 Decision Intelligence Agent is a deterministic recommendation engine. It does not autonomously execute business actions.*
 > - *Strict separation between Forecast Uncertainty (prediction interval spread) and Decision Confidence (calibrated recommendation trust score).*
 > - *Zero Value Fabrication: Missing business context fields are never imputed or assumed; they automatically downgrade confidence, emit warnings, and trigger human supervisory review.*
@@ -36,7 +37,7 @@ GlassBox-BI/
 ├── backend/                        # FastAPI Backend Application
 │   ├── app/
 │   │   ├── api/                    # Versioned REST APIs (/api/v1/)
-│   │   │   └── v1/endpoints/       # Health, contracts, processing, forecasting, evaluation, explainability, decisions
+│   │   │   └── v1/endpoints/       # Processing, forecasting, evaluation, explainability, decisions, orchestration
 │   │   ├── core/                   # Config, settings, logging & CORS
 │   │   ├── schemas/                # Canonical data contracts & Pydantic schemas
 │   │   │   ├── data_contract.py    # BusinessTimeSeriesRecord & ColumnMapping
@@ -45,28 +46,32 @@ GlassBox-BI/
 │   │   │   ├── forecasting.py      # ForecastPoint, ForecastRequest, ForecastResult
 │   │   │   ├── evaluation.py       # BenchmarkResult & ModelTestEvaluation
 │   │   │   ├── explainability.py   # ExplanationResult, FeatureContribution, Fidelity
-│   │   │   └── decisions.py        # BusinessContext, RecommendationItem, DecisionResult
-│   │   ├── data_processing/        # Ingestion, validation, profiling, and processing agent
+│   │   │   ├── decisions.py        # BusinessContext, RecommendationItem, DecisionResult
+│   │   │   └── orchestration.py    # PipelineStage, StageExecutionResult, OrchestrationResult, State
+│   │   ├── data_processing/        # Ingestion, validation, profiling, and processing agent (Phase 3)
 │   │   ├── forecasting/            # Forecasting models & agent (Phase 4)
 │   │   ├── evaluation/             # Formal forecasting evaluation module (Phase 5)
 │   │   ├── explainability/         # XAI & SHAP/LIME attribution module (Phase 6)
 │   │   ├── decision_intelligence/  # Deterministic Prescriptive Decision Agent (Phase 7)
-│   │   │   ├── base.py             # BaseDecisionEngine abstract interface
-│   │   │   ├── rules.py            # RetailDecisionRuleEngine (8 deterministic rules)
-│   │   │   ├── scoring.py          # DecisionScorer (confidence calibration & recommendation score)
-│   │   │   ├── validation.py       # DecisionValidator (zero-fabrication & safety contracts)
-│   │   │   └── agent.py            # DecisionIntelligenceAgent coordinator
-│   │   ├── orchestration/          # Multi-agent orchestrator boundary (Phase 8)
+│   │   ├── orchestration/          # Multi-Agent Orchestrator Engine (Phase 8)
+│   │   │   ├── base.py             # BaseOrchestrator abstract interface
+│   │   │   ├── registry.py         # AgentRegistry (explicit stage to agent mapping)
+│   │   │   ├── graph.py            # WorkflowGraph (canonical pipeline & blocking failure rules)
+│   │   │   ├── validation.py       # WorkflowValidator (early validation of requests)
+│   │   │   ├── audit.py            # WorkflowAuditTracker (end-to-end lineage & timing)
+│   │   │   ├── executor.py         # SequentialWorkflowExecutor (stage execution & error isolation)
+│   │   │   └── agent.py            # MultiAgentOrchestrator coordinator
 │   │   └── main.py                 # Application entrypoint & health checks
 │   └── requirements.txt            # Backend dependencies
 ├── frontend/                       # Next.js 16 + TypeScript Dashboard
-│   └── src/components/             # ForecastingPanel, EvaluationPanel, ExplainabilityPanel, DecisionIntelligencePanel
+│   └── src/components/             # ForecastingPanel, EvaluationPanel, ExplainabilityPanel, DecisionIntelligencePanel, OrchestrationPanel
 ├── data/                           # Data directory tree
 ├── scripts/                        # Utility & verification scripts
 │   ├── verify_phase5_benchmark.py  # Holdout test set formal benchmark verification
 │   ├── verify_phase6_explainability.py # Live verification for SHAP, LIME, and Prophet
-│   └── verify_phase7_decisions.py  # Live verification for Decision Intelligence
-├── tests/                          # Automated test suites (158 unit tests, 0 regressions)
+│   ├── verify_phase7_decisions.py  # Live verification for Decision Intelligence
+│   └── verify_phase8_orchestration.py # Live verification for Multi-Agent Orchestration
+├── tests/                          # Automated test suites (189 unit tests, 0 regressions)
 │   └── unit/
 └── docs/                           # Architecture and roadmap documentation
 ```
@@ -109,8 +114,10 @@ flowchart TD
     end
 
     FA --> FCResult["Machine-Readable ForecastResult"]
-    FCResult --> P5["Phase 5 Formal Forecast Evaluation (Completed)"]
-    P5 --> P6["Phase 6 Explainability Agent (Next Phase)"]
+    FCResult --> P5["Phase 5 Formal Forecast Evaluation"]
+    P5 --> P6["Phase 6 Explainability Agent (SHAP / LIME)"]
+    P6 --> P7["Phase 7 Decision Intelligence Agent"]
+    P7 --> P8["Phase 8 Multi-Agent Orchestrator Result"]
 ```
 
 ---
@@ -169,6 +176,13 @@ Key API endpoints:
 - **Evaluation Metrics Documentation**: `http://127.0.0.1:8000/api/v1/evaluation/metrics`
 - **Fast Demonstration Benchmark**: `http://127.0.0.1:8000/api/v1/evaluation/sample?horizon=14&models=prophet,lightgbm,lstm`
 - **Run Formal Test Benchmark**: `POST http://127.0.0.1:8000/api/v1/evaluation/run`
+- **Explainability API**: `POST http://127.0.0.1:8000/api/v1/explainability/local`, `/global`, `/sample`
+- **Decision Intelligence API**: `POST http://127.0.0.1:8000/api/v1/decisions/run`, `/scenario`, `/sample`
+- **Orchestration Health**: `http://127.0.0.1:8000/api/v1/orchestration/health`
+- **Orchestration Stages & Dependencies**: `http://127.0.0.1:8000/api/v1/orchestration/stages`
+- **Orchestration Sample Workflow**: `http://127.0.0.1:8000/api/v1/orchestration/sample`
+- **Run Multi-Agent Orchestration**: `POST http://127.0.0.1:8000/api/v1/orchestration/run`
+- **Inspect Workflow State**: `GET http://127.0.0.1:8000/api/v1/orchestration/{workflow_id}`
 - Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
 
 ### 4. Frontend Setup & Run
@@ -177,7 +191,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell, Phase 4 forecasting panel, and Phase 5 holdout test-set benchmark panel.
+Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI interactive dashboard shell, Phase 4 forecasting panel, Phase 5 holdout test-set benchmark panel, Phase 6 explainability panel, Phase 7 decision intelligence panel, and Phase 8 multi-agent orchestration timeline panel.
 
 ---
 
@@ -191,10 +205,10 @@ Open [http://localhost:3000](http://localhost:3000) to view the GlassBox-BI inte
 | **Phase 3** | **Data Processing Agent** | ✅ Completed |
 | **Phase 4** | **Forecasting Agent** | ✅ Completed |
 | **Phase 5** | **Forecast Evaluation** | ✅ Completed |
-| **Phase 6** | **Explainability Agent** | ⏳ Next |
-| **Phase 7** | **Decision Intelligence Agent** | ⏳ Pending |
-| **Phase 8** | **Multi-Agent Orchestration** | ⏳ Pending |
-| **Phase 9** | **Feedback & Self-Correction Loop** | ⏳ Pending |
+| **Phase 6** | **Explainability Agent** | ✅ Completed |
+| **Phase 7** | **Decision Intelligence Agent** | ✅ Completed |
+| **Phase 8** | **Multi-Agent Orchestration** | ✅ Completed |
+| **Phase 9** | **Feedback & Self-Correction Loop** | ⏳ Next |
 | **Phase 10** | **Dashboard** | ⏳ Pending |
 | **Phase 11** | **MLflow, Testing & Deployment** | ⏳ Pending |
 | **Phase 12** | **Final Integration & Validation** | ⏳ Pending |

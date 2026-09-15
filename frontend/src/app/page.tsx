@@ -10,6 +10,7 @@ import ForecastingPanel from "@/components/ForecastingPanel";
 import EvaluationPanel from "@/components/EvaluationPanel";
 import ExplainabilityPanel from "@/components/ExplainabilityPanel";
 import DecisionIntelligencePanel from "@/components/DecisionIntelligencePanel";
+import OrchestrationPanel from "@/components/OrchestrationPanel";
 
 export default function Home() {
   return (
@@ -103,6 +104,9 @@ export default function Home() {
 
           {/* Phase 7 Development Verification: Decision Intelligence Agent */}
           <DecisionIntelligencePanel />
+
+          {/* Phase 8 Development Verification: Multi-Agent Orchestration Engine */}
+          <OrchestrationPanel />
 
           {/* Development Notice */}
           <div className="text-center py-6 border-t border-slate-900 text-xs text-slate-400">
